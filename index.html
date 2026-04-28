@@ -88,7 +88,7 @@
 const SPAWN = { green: 45*60, blue: 60*60, purple: 120*60 };
 const LABEL = { green: 'Green Room', blue: 'Blue Room', purple: 'Purple Room' };
 
-let monuments = [
+let defaultMonuments = [
   { id:'mil',    name:'Military Base',  rooms:[{c:'green'},{c:'blue'},{c:'purple'}] },
   { id:'harbor', name:'Harbor',         rooms:[{c:'green'},{c:'blue'}] },
   { id:'airport',name:'Airport',        rooms:[{c:'green'},{c:'blue'}] },
@@ -97,7 +97,39 @@ let monuments = [
   { id:'bio',    name:'Bio Research',   rooms:[{c:'blue'},{c:'purple'}] },
 ];
 
+let monuments = [];
 let timers = {};
+
+function saveState() {
+  localStorage.setItem('187mob_monuments', JSON.stringify(monuments));
+  localStorage.setItem('187mob_timers', JSON.stringify(timers));
+}
+
+function loadState() {
+  const savedMonuments = localStorage.getItem('187mob_monuments');
+  const savedTimers = localStorage.getItem('187mob_timers');
+  
+  if (savedMonuments) {
+    monuments = JSON.parse(savedMonuments);
+  } else {
+    monuments = JSON.parse(JSON.stringify(defaultMonuments));
+  }
+
+  if (savedTimers) {
+    timers = JSON.parse(savedTimers);
+    const now = Date.now();
+    Object.keys(timers).forEach(k => {
+      const t = timers[k];
+      if (t.active && t.endTime) {
+        t.remaining = Math.max(0, Math.round((t.endTime - now) / 1000));
+        if (t.remaining <= 0) {
+          t.active = false;
+        }
+      }
+    });
+  }
+}
+
 function key(mId, ri) { return mId + '_' + ri; }
 function fmt(s) {
   if (s <= 0) return 'READY';
@@ -133,7 +165,7 @@ function render() {
     const container = el.querySelector(`#rooms-${mon.id}`);
     mon.rooms.forEach((room, ri) => {
       const k = key(mon.id, ri);
-      if (!timers[k]) timers[k] = { remaining: 0, active: false, total: SPAWN[room.c] };
+      if (!timers[k]) timers[k] = { remaining: 0, active: false, total: SPAWN[room.c], endTime: null };
       const t = timers[k];
       const total = t.total || SPAWN[room.c];
       const pct = t.active ? Math.round((t.remaining / total) * 100) : 100;
@@ -169,8 +201,10 @@ function render() {
 
 function loot(mId, ri, color) {
   const k = key(mId, ri);
-  timers[k] = { remaining: SPAWN[color], active: true, total: SPAWN[color] };
+  const secs = SPAWN[color];
+  timers[k] = { remaining: secs, active: true, total: secs, endTime: Date.now() + (secs * 1000) };
   updateTile(mId, ri, color);
+  saveState();
 }
 
 function setCustomTime(mId, ri, color) {
@@ -184,22 +218,25 @@ function setCustomTime(mId, ri, color) {
     return;
   }
   inp.value = '';
-  timers[k] = { remaining: secs, active: true, total: secs };
+  timers[k] = { remaining: secs, active: true, total: secs, endTime: Date.now() + (secs * 1000) };
   updateTile(mId, ri, color);
+  saveState();
 }
 
 function changeColor(mId, ri, color) {
   const mon = monuments.find(m => m.id === mId);
   const k = key(mId, ri);
   mon.rooms[ri].c = color;
-  timers[k] = { remaining: 0, active: false, total: SPAWN[color] };
+  timers[k] = { remaining: 0, active: false, total: SPAWN[color], endTime: null };
   render();
+  saveState();
 }
 
 function addRoom(mId) {
   const mon = monuments.find(m => m.id === mId);
   mon.rooms.push({ c: 'green' });
   render();
+  saveState();
 }
 
 function removeRoom(mId, ri) {
@@ -218,6 +255,7 @@ function removeRoom(mId, ri) {
   });
   timers = newTimers;
   render();
+  saveState();
 }
 
 function updateTile(mId, ri, color) {
@@ -249,18 +287,29 @@ function updateTile(mId, ri, color) {
 }
 
 setInterval(() => {
+  const now = Date.now();
+  let stateChanged = false;
+  
   monuments.forEach(mon => {
     mon.rooms.forEach((room, ri) => {
       const k = key(mon.id, ri);
       const t = timers[k];
-      if (t && t.active) {
-        t.remaining = Math.max(0, t.remaining - 1);
+      if (t && t.active && t.endTime) {
+        t.remaining = Math.max(0, Math.round((t.endTime - now) / 1000));
+        
+        if (t.remaining === 0) {
+          t.active = false;
+          stateChanged = true;
+        }
         updateTile(mon.id, ri, room.c);
       }
     });
   });
+
+  if (stateChanged) saveState();
 }, 1000);
 
+loadState();
 render();
 </script>
 </body>
