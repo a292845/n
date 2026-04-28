@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIOS Spawn Tracker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0d1117;
+    color: #cdd6e0;
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    padding: 16px;
+  }
+  h1 {
+    font-size: 20px;
+    color: #e6f0e6;
+    letter-spacing: 1px;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 11px;
+    color: #3a6040;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+    font-family: monospace;
+  }
+
+  .monument {
+    background: #111820;
+    border: 1px solid #1e2e20;
+    border-radius: 10px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .monument-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: #0d1410;
+    border-bottom: 1px solid #1a2a1a;
+  }
+  .monument-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #b0d0b0;
+    letter-spacing: 0.5px;
+  }
+  .add-room-btn {
+    background: #0a1f0a;
+    border: 1px solid #1a3a1a;
+    border-radius: 5px;
+    color: #4a9a4a;
+    font-size: 11px;
+    padding: 3px 10px;
+    cursor: pointer;
+    letter-spacing: 1px;
+  }
+  .add-room-btn:hover { background: #0e2a0e; }
+  .rooms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+  }
+  .room {
+    background: #0a1210;
+    border-radius: 8px;
+    padding: 10px;
+    width: 150px;
+    border-top: 3px solid #333;
+    position: relative;
+  }
+  .room.green  { border-top-color: #3a9a3a; }
+  .room.blue   { border-top-color: #2a70c0; }
+  .room.purple { border-top-color: #8a3aba; }
+
+  .room-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .room-label {
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .room.green  .room-label { color: #5aca5a; }
+  .room.blue   .room-label { color: #5aaae0; }
+  .room.purple .room-label { color: #c07ae0; }
+  .color-picker {
+    display: flex;
+    gap: 4px;
+  }
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: border-color 0.15s;
+  }
+  .dot.green  { background: #3a9a3a; }
+  .dot.blue   { background: #2a70c0; }
+  .dot.purple { background: #8a3aba; }
+  .dot.active { border-color: #fff; }
+  .timer {
+    font-family: monospace;
+    font-size: 22px;
+    letter-spacing: 1px;
+    margin: 4px 0 8px;
+  }
+  .room[data-state="ready"]    .timer { color: #5aca5a; }
+  .room[data-state="counting"] .timer { color: #4a6a50; }
+  .bar { height: 2px; background: #1a2a1a; border-radius: 1px; margin-bottom: 8px; }
+  .bar-fill { height: 100%; border-radius: 1px; transition: width 1s linear; }
+  .room.green  .bar-fill { background: #3a9a3a; }
+  .room.blue   .bar-fill { background: #2a70c0; }
+  .room.purple .bar-fill { background: #8a3aba; }
+  .loot-btn {
+    width: 100%;
+    padding: 5px;
+    background: #0a1f0a;
+    border: 1px solid #1a3a1a;
+    border-radius: 5px;
+    color: #5aca5a;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
+  .loot-btn:hover { background: #0e280e; }
+  .loot-btn.off {
+    background: #0a140a;
+    border-color: #141e14;
+    color: #2a4a2a;
+    cursor: not-allowed;
+  }
+  .remove-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 14px;
+    height: 14px;
+    background: #1a1a1a;
+    border: none;
+    border-radius: 50%;
+    color: #444;
+    font-size: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .remove-btn:hover { color: #c04040; background: #2a1a1a; }
+  .footer {
+    text-align: center;
+    font-size: 10px;
+    color: #2a4a2a;
+    font-family: monospace;
+    letter-spacing: 2px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #141e14;
+  }
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #6a8a70;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+</style>
+</head>
+<body>
+
+<h1>&#x2316; Nigga Tracker</h1>
+<div class="subtitle">LAST ISLAND OF SURVIVAL</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#3a9a3a"></div> Green — 45 min</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2a70c0"></div> Blue — 1 hr</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#8a3aba"></div> Purple — 2 hr</div>
+</div>
+
+<div id="app"></div>
+
+<div class="footer">CLICK A DOT TO CHANGE ROOM COLOR &nbsp;|&nbsp; CLICK LOOTED TO START TIMER</div>
+
+<script>
+
+const SPAWN = { green: 45*60, blue: 60*60, purple: 120*60 };
+const LABEL = { green: 'Green Room', blue: 'Blue Room', purple: 'Purple Room' };
+
+
+let monuments = [
+  { id:'mil',   name:'Military Base',      rooms:[{c:'green'},{c:'blue'},{c:'purple'}] },
+  { id:'harbor',name:'Harbor',             rooms:[{c:'green'},{c:'blue'}] },
+  { id:'airport',name:'Airport',           rooms:[{c:'green'},{c:'blue'}] },
+  { id:'bomb',  name:'Bomb Shelter',       rooms:[{c:'green'},{c:'blue'}] },
+  { id:'power', name:'Nuclear Plant',        rooms:[{c:'green'},{c:'blue'},{c:'purple'}] },
+  { id:'bio',   name:'Bio Research',       rooms:[{c:'blue'},{c:'purple'}] },
+  
+];
+
+
+let timers = {};
+function key(mId, ri) { return mId + '_' + ri; }
+function fmt(s) {
+  if (s <= 0) return 'READY';
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  if (h > 0) return h+':'+pad(m)+':'+pad(sec);
+  return pad(m)+':'+pad(sec);
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+
+  monuments.forEach(mon => {
+    const el = document.createElement('div');
+    el.className = 'monument';
+    el.innerHTML = `
+      <div class="monument-header">
+        <span class="monument-name">${mon.name}</span>
+        <button class="add-room-btn" onclick="addRoom('${mon.id}')">+ Add Room</button>
+      </div>
+      <div class="rooms" id="rooms-${mon.id}"></div>`;
+    app.appendChild(el);
+
+    const container = el.querySelector(`#rooms-${mon.id}`);
+    mon.rooms.forEach((room, ri) => {
+      const k = key(mon.id, ri);
+      if (!timers[k]) timers[k] = { remaining: 0, active: false };
+      const t = timers[k];
+      const total = SPAWN[room.c];
+      const pct = t.active ? Math.round((t.remaining / total) * 100) : 100;
+      const state = t.active ? 'counting' : 'ready';
+
+      const tile = document.createElement('div');
+      tile.className = `room ${room.c}`;
+      tile.dataset.state = state;
+      tile.id = `tile-${k}`;
+      tile.innerHTML = `
+        <button class="remove-btn" onclick="removeRoom('${mon.id}',${ri})" title="Remove">&#x2715;</button>
+        <div class="room-top">
+          <span class="room-label">${LABEL[room.c]}</span>
+          <div class="color-picker">
+            <div class="dot green ${room.c==='green'?'active':''}" onclick="changeColor('${mon.id}',${ri},'green')" title="Green 45min"></div>
+            <div class="dot blue  ${room.c==='blue' ?'active':''}" onclick="changeColor('${mon.id}',${ri},'blue')"  title="Blue 1hr"></div>
+            <div class="dot purple${room.c==='purple'?'active':''}" onclick="changeColor('${mon.id}',${ri},'purple')" title="Purple 2hr"></div>
+          </div>
+        </div>
+        <div class="timer" id="tmr-${k}">${t.active ? fmt(t.remaining) : 'READY'}</div>
+        <div class="bar"><div class="bar-fill" id="bar-${k}" style="width:${pct}%"></div></div>
+        <button class="loot-btn ${t.active?'off':''}" id="btn-${k}"
+          onclick="${t.active ? '' : `loot('${mon.id}',${ri},'${room.c}')`}">
+          ${t.active ? 'Counting...' : '&#x2605; Looted!'}
+        </button>`;
+      container.appendChild(tile);
+    });
+  });
+}
+function loot(mId, ri, color) {
+  const k = key(mId, ri);
+  timers[k] = { remaining: SPAWN[color], active: true };
+  updateTile(mId, ri, color);
+}
+
+function changeColor(mId, ri, color) {
+  const mon = monuments.find(m => m.id === mId);
+  const k = key(mId, ri);
+  mon.rooms[ri].c = color;
+  timers[k] = { remaining: 0, active: false };
+  render();
+}
+
+function addRoom(mId) {
+  const mon = monuments.find(m => m.id === mId);
+  mon.rooms.push({ c: 'green' });
+  render();
+}
+
+function removeRoom(mId, ri) {
+  const mon = monuments.find(m => m.id === mId);
+  if (mon.rooms.length <= 1) return; 
+  const k = key(mId, ri);
+  delete timers[k];
+  mon.rooms.splice(ri, 1);
+  const newTimers = {};
+  Object.keys(timers).forEach(tk => {
+    const [tid, tri] = tk.split('_');
+    if (tid !== mId) { newTimers[tk] = timers[tk]; return; }
+    const idx = parseInt(tri);
+    if (idx < ri) newTimers[tk] = timers[tk];
+    else if (idx > ri) newTimers[key(tid, idx-1)] = timers[tk];
+  });
+  timers = newTimers;
+  render();
+}
+
+function updateTile(mId, ri, color) {
+  const k = key(mId, ri);
+  const t = timers[k];
+  const total = SPAWN[color];
+  const pct = t.active ? Math.round((t.remaining / total) * 100) : 100;
+
+  const tile = document.getElementById(`tile-${k}`);
+  const tmr  = document.getElementById(`tmr-${k}`);
+  const bar  = document.getElementById(`bar-${k}`);
+  const btn  = document.getElementById(`btn-${k}`);
+
+  if (!tile) return;
+
+  if (t.active && t.remaining > 0) {
+    tile.dataset.state = 'counting';
+    tmr.textContent = fmt(t.remaining);
+    bar.style.width = pct + '%';
+    btn.className = 'loot-btn off';
+    btn.textContent = 'Counting...';
+    btn.onclick = null;
+  } else {
+    t.active = false;
+    t.remaining = 0;
+    tile.dataset.state = 'ready';
+    tmr.textContent = 'READY';
+    bar.style.width = '100%';
+    btn.className = 'loot-btn';
+    btn.innerHTML = '&#x2605; Looted!';
+    btn.onclick = () => loot(mId, ri, color);
+  }
+}
+setInterval(() => {
+  monuments.forEach(mon => {
+    mon.rooms.forEach((room, ri) => {
+      const k = key(mon.id, ri);
+      const t = timers[k];
+      if (t && t.active) {
+        t.remaining = Math.max(0, t.remaining - 1);
+        updateTile(mon.id, ri, room.c);
+      }
+    });
+  });
+}, 1000);
+render();
+</script>
+</body>
+</html>
