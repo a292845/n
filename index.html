@@ -22,31 +22,48 @@
   .add-room-btn:hover { background: #0e2a0e; }
   .rooms { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px; }
   .room { background: #0a1210; border-radius: 8px; padding: 10px; width: 150px; border-top: 3px solid #333; position: relative; }
+  
   .room.green  { border-top-color: #3a9a3a; }
   .room.blue   { border-top-color: #2a70c0; }
   .room.purple { border-top-color: #8a3aba; }
+  .room.spirit { border-top-color: #e0b05a; }
+  .room.mask   { border-top-color: #e05a5a; }
+
   .room-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-  .room-label { font-size: 12px; font-weight: 700; }
+  .room-label { font-size: 11px; font-weight: 700; }
+  
   .room.green  .room-label { color: #5aca5a; }
   .room.blue   .room-label { color: #5aaae0; }
   .room.purple .room-label { color: #c07ae0; }
+  .room.spirit .room-label { color: #e0b05a; }
+  .room.mask   .room-label { color: #e05a5a; }
+
   .color-picker { display: flex; gap: 4px; }
   .dot { width: 10px; height: 10px; border-radius: 50%; cursor: pointer; border: 1.5px solid transparent; transition: border-color 0.15s; }
+  
   .dot.green  { background: #3a9a3a; }
   .dot.blue   { background: #2a70c0; }
   .dot.purple { background: #8a3aba; }
+  .dot.spirit { background: #e0b05a; }
+  .dot.mask   { background: #e05a5a; }
   .dot.active { border-color: #fff; }
+
   .timer { font-family: monospace; font-size: 22px; letter-spacing: 1px; margin: 4px 0 8px; }
   .room[data-state="ready"]    .timer { color: #5aca5a; }
   .room[data-state="counting"] .timer { color: #4a6a50; }
   .bar { height: 2px; background: #1a2a1a; border-radius: 1px; margin-bottom: 8px; }
   .bar-fill { height: 100%; border-radius: 1px; transition: width 1s linear; }
+  
   .room.green  .bar-fill { background: #3a9a3a; }
   .room.blue   .bar-fill { background: #2a70c0; }
   .room.purple .bar-fill { background: #8a3aba; }
+  .room.spirit .bar-fill { background: #e0b05a; }
+  .room.mask   .bar-fill { background: #e05a5a; }
+
   .loot-btn { width: 100%; padding: 5px; background: #0a1f0a; border: 1px solid #1a3a1a; border-radius: 5px; color: #5aca5a; font-size: 11px; font-weight: 700; letter-spacing: 1px; cursor: pointer; margin-bottom: 6px; }
   .loot-btn:hover { background: #0e280e; }
   .loot-btn.off { background: #0a140a; border-color: #141e14; color: #2a4a2a; cursor: not-allowed; }
+  
   .custom-time-row { display: flex; gap: 4px; align-items: center; }
   .custom-time-input {
     flex: 1; background: #060e06; border: 1px solid #1a3a1a; border-radius: 4px;
@@ -55,6 +72,7 @@
   }
   .custom-time-input::placeholder { color: #2a4a2a; }
   .custom-time-input:focus { border-color: #3a7a3a; }
+  
   .set-btn {
     background: #0a1a0a; border: 1px solid #2a4a2a; border-radius: 4px;
     color: #4a8a4a; font-size: 10px; font-weight: 700; letter-spacing: 1px;
@@ -63,6 +81,7 @@
   .set-btn:hover { background: #0e240e; color: #6aaa6a; border-color: #3a6a3a; }
   .remove-btn { position: absolute; top: 6px; right: 6px; width: 14px; height: 14px; background: #1a1a1a; border: none; border-radius: 50%; color: #444; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
   .remove-btn:hover { color: #c04040; background: #2a1a1a; }
+  
   .footer { text-align: center; font-size: 10px; color: #2a4a2a; font-family: monospace; letter-spacing: 2px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #141e14; }
   .legend { display: flex; justify-content: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
   .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #6a8a70; }
@@ -75,9 +94,11 @@
 <div class="subtitle">LAST ISLAND OF SURVIVAL</div>
 
 <div class="legend">
-  <div class="legend-item"><div class="legend-dot" style="background:#3a9a3a"></div> Green — 45 min</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#2a70c0"></div> Blue — 1 hr</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#8a3aba"></div> Purple — 2 hr</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3a9a3a"></div> Green — 45m</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2a70c0"></div> Blue — 1h</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#8a3aba"></div> Purple — 2h</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e0b05a"></div> Spirit — 30m</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e05a5a"></div> Mask — 1h</div>
 </div>
 
 <div id="app"></div>
@@ -85,16 +106,17 @@
 <div class="footer">BETLOG &nbsp;|&nbsp; TANGINA MO R1DC PANAY KA TULOG</div>
 
 <script>
-const SPAWN = { green: 45*60, blue: 60*60, purple: 120*60 };
-const LABEL = { green: 'Green Room', blue: 'Blue Room', purple: 'Purple Room' };
+const SPAWN = { green: 45*60, blue: 60*60, purple: 120*60, spirit: 30*60, mask: 60*60 };
+const LABEL = { green: 'Green Room', blue: 'Blue Room', purple: 'Purple Room', spirit: 'Spirit Monster', mask: 'Mask' };
 
 let defaultMonuments = [
-  { id:'mil',    name:'Military Base',  rooms:[{c:'green'},{c:'blue'},{c:'purple'}] },
-  { id:'harbor', name:'Harbor',         rooms:[{c:'green'},{c:'blue'}] },
-  { id:'airport',name:'Airport',        rooms:[{c:'green'},{c:'blue'}] },
-  { id:'bomb',   name:'Bomb Shelter',   rooms:[{c:'green'},{c:'blue'}] },
-  { id:'power',  name:'Nuclear Plant',  rooms:[{c:'green'},{c:'blue'},{c:'purple'}] },
-  { id:'bio',    name:'Bio Research',   rooms:[{c:'blue'},{c:'purple'}] },
+  { id:'mil',    name:'Military Base',  rooms:[{c:'green'},{c:'blue'},{c:'purple'},{c:'spirit'},{c:'mask'}] },
+  { id:'harbor', name:'Harbor',         rooms:[{c:'green'},{c:'blue'},{c:'spirit'},{c:'mask'}] },
+  { id:'airport',name:'Airport',        rooms:[{c:'green'},{c:'blue'},{c:'spirit'},{c:'mask'}] },
+  { id:'bomb',   name:'Bomb Shelter',   rooms:[{c:'green'},{c:'blue'},{c:'spirit'},{c:'mask'}] },
+  { id:'power',  name:'Nuclear Plant',  rooms:[{c:'green'},{c:'blue'},{c:'purple'},{c:'spirit'},{c:'mask'}] },
+  { id:'bio',    name:'Bio Research',   rooms:[{c:'blue'},{c:'purple'},{c:'spirit'},{c:'mask'}] },
+  { id:'bandit', name:'Bandit Camp',    rooms:[{c:'green'},{c:'blue'},{c:'spirit'},{c:'mask'}] },
 ];
 
 let monuments = [];
@@ -111,6 +133,22 @@ function loadState() {
   
   if (savedMonuments) {
     monuments = JSON.parse(savedMonuments);
+    
+    monuments.forEach(mon => {
+      mon.rooms = mon.rooms.filter(r => r.c !== 'bandit' && r.c !== 'research');
+      
+      if (mon.rooms.length === 0) {
+        if (mon.id === 'bandit') {
+          mon.rooms = [{c:'green'},{c:'blue'},{c:'spirit'},{c:'mask'}];
+        } else {
+          mon.rooms = [{c:'spirit'}];
+        }
+      }
+    });
+
+    if (!monuments.some(m => m.id === 'bandit')) {
+      monuments.push({ id:'bandit', name:'Bandit Camp', rooms:[{c:'green'},{c:'blue'},{c:'spirit'},{c:'mask'}] });
+    }
   } else {
     monuments = JSON.parse(JSON.stringify(defaultMonuments));
   }
@@ -122,9 +160,7 @@ function loadState() {
       const t = timers[k];
       if (t.active && t.endTime) {
         t.remaining = Math.max(0, Math.round((t.endTime - now) / 1000));
-        if (t.remaining <= 0) {
-          t.active = false;
-        }
+        if (t.remaining <= 0) t.active = false;
       }
     });
   }
@@ -163,6 +199,7 @@ function render() {
       <div class="rooms" id="rooms-${mon.id}"></div>`;
     app.appendChild(el);
     const container = el.querySelector(`#rooms-${mon.id}`);
+    
     mon.rooms.forEach((room, ri) => {
       const k = key(mon.id, ri);
       if (!timers[k]) timers[k] = { remaining: 0, active: false, total: SPAWN[room.c], endTime: null };
@@ -170,6 +207,7 @@ function render() {
       const total = t.total || SPAWN[room.c];
       const pct = t.active ? Math.round((t.remaining / total) * 100) : 100;
       const state = t.active ? 'counting' : 'ready';
+      
       const tile = document.createElement('div');
       tile.className = `room ${room.c}`;
       tile.dataset.state = state;
@@ -179,19 +217,20 @@ function render() {
         <div class="room-top">
           <span class="room-label">${LABEL[room.c]}</span>
           <div class="color-picker">
-            <div class="dot green ${room.c==='green'?'active':''}" onclick="changeColor('${mon.id}',${ri},'green')"></div>
-            <div class="dot blue  ${room.c==='blue' ?'active':''}" onclick="changeColor('${mon.id}',${ri},'blue')"></div>
-            <div class="dot purple ${room.c==='purple'?'active':''}" onclick="changeColor('${mon.id}',${ri},'purple')"></div>
+            <div class="dot green ${room.c==='green'?'active':''}" onclick="changeColor('${mon.id}',${ri},'green')" title="Green Room"></div>
+            <div class="dot blue ${room.c==='blue'?'active':''}" onclick="changeColor('${mon.id}',${ri},'blue')" title="Blue Room"></div>
+            <div class="dot purple ${room.c==='purple'?'active':''}" onclick="changeColor('${mon.id}',${ri},'purple')" title="Purple Room"></div>
+            <div class="dot spirit ${room.c==='spirit'?'active':''}" onclick="changeColor('${mon.id}',${ri},'spirit')" title="Spirit Monster"></div>
+            <div class="dot mask ${room.c==='mask'?'active':''}" onclick="changeColor('${mon.id}',${ri},'mask')" title="Mask"></div>
           </div>
         </div>
         <div class="timer" id="tmr-${k}">${t.active ? fmt(t.remaining) : 'READY'}</div>
         <div class="bar"><div class="bar-fill" id="bar-${k}" style="width:${pct}%"></div></div>
-        <button class="loot-btn ${t.active?'off':''}" id="btn-${k}"
-          onclick="${t.active ? '' : `loot('${mon.id}',${ri},'${room.c}')`}">
+        <button class="loot-btn ${t.active?'off':''}" id="btn-${k}" onclick="${t.active ? '' : `loot('${mon.id}',${ri},'${room.c}')`}">
           ${t.active ? 'Counting...' : '&#x2605; Looted!'}
         </button>
         <div class="custom-time-row">
-          <input class="custom-time-input" id="inp-${k}" type="text" placeholder="mm:ss" maxlength="8" />
+          <input class="custom-time-input" id="inp-${k}" type="text" placeholder="hh:mm:ss" maxlength="8" />
           <button class="set-btn" onclick="setCustomTime('${mon.id}',${ri},'${room.c}')">SET</button>
         </div>`;
       container.appendChild(tile);
@@ -234,7 +273,7 @@ function changeColor(mId, ri, color) {
 
 function addRoom(mId) {
   const mon = monuments.find(m => m.id === mId);
-  mon.rooms.push({ c: 'green' });
+  mon.rooms.push({ c: 'spirit' });
   render();
   saveState();
 }
@@ -267,7 +306,9 @@ function updateTile(mId, ri, color) {
   const tmr  = document.getElementById(`tmr-${k}`);
   const bar  = document.getElementById(`bar-${k}`);
   const btn  = document.getElementById(`btn-${k}`);
+  
   if (!tile) return;
+  
   if (t.active && t.remaining > 0) {
     tile.dataset.state = 'counting';
     tmr.textContent = fmt(t.remaining);
@@ -296,7 +337,6 @@ setInterval(() => {
       const t = timers[k];
       if (t && t.active && t.endTime) {
         t.remaining = Math.max(0, Math.round((t.endTime - now) / 1000));
-        
         if (t.remaining === 0) {
           t.active = false;
           stateChanged = true;
