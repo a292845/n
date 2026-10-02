@@ -1,356 +1,2423 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>187MOB Tracker</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: #0d1117;
-    color: #cdd6e0;
-    font-family: 'Segoe UI', sans-serif;
-    min-height: 100vh;
-    padding: 16px;
-  }
-  h1 { font-size: 20px; color: #e6f0e6; letter-spacing: 1px; text-align: center; margin-bottom: 4px; }
-  .subtitle { text-align: center; font-size: 11px; color: #3a6040; letter-spacing: 2px; margin-bottom: 20px; font-family: monospace; }
-  .monument { background: #111820; border: 1px solid #1e2e20; border-radius: 10px; margin-bottom: 14px; overflow: hidden; }
-  .monument-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #0d1410; border-bottom: 1px solid #1a2a1a; }
-  .monument-name { font-size: 14px; font-weight: 700; color: #b0d0b0; letter-spacing: 0.5px; }
-  .add-room-btn { background: #0a1f0a; border: 1px solid #1a3a1a; border-radius: 5px; color: #4a9a4a; font-size: 11px; padding: 3px 10px; cursor: pointer; letter-spacing: 1px; }
-  .add-room-btn:hover { background: #0e2a0e; }
-  .rooms { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px; }
-  .room { background: #0a1210; border-radius: 8px; padding: 10px; width: 150px; border-top: 3px solid #333; position: relative; }
-  
-  .room.green  { border-top-color: #3a9a3a; }
-  .room.blue   { border-top-color: #2a70c0; }
-  .room.purple { border-top-color: #8a3aba; }
-  .room.spirit { border-top-color: #e0b05a; }
-  .room.mask   { border-top-color: #e05a5a; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
 
-  .room-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-  .room-label { font-size: 11px; font-weight: 700; }
-  
-  .room.green  .room-label { color: #5aca5a; }
-  .room.blue   .room-label { color: #5aaae0; }
-  .room.purple .room-label { color: #c07ae0; }
-  .room.spirit .room-label { color: #e0b05a; }
-  .room.mask   .room-label { color: #e05a5a; }
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+</script>
 
-  .color-picker { display: flex; gap: 4px; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; cursor: pointer; border: 1.5px solid transparent; transition: border-color 0.15s; }
-  
-  .dot.green  { background: #3a9a3a; }
-  .dot.blue   { background: #2a70c0; }
-  .dot.purple { background: #8a3aba; }
-  .dot.spirit { background: #e0b05a; }
-  .dot.mask   { background: #e05a5a; }
-  .dot.active { border-color: #fff; }
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-  .timer { font-family: monospace; font-size: 22px; letter-spacing: 1px; margin: 4px 0 8px; }
-  .room[data-state="ready"]    .timer { color: #5aca5a; }
-  .room[data-state="counting"] .timer { color: #4a6a50; }
-  .bar { height: 2px; background: #1a2a1a; border-radius: 1px; margin-bottom: 8px; }
-  .bar-fill { height: 100%; border-radius: 1px; transition: width 1s linear; }
-  
-  .room.green  .bar-fill { background: #3a9a3a; }
-  .room.blue   .bar-fill { background: #2a70c0; }
-  .room.purple .bar-fill { background: #8a3aba; }
-  .room.spirit .bar-fill { background: #e0b05a; }
-  .room.mask   .bar-fill { background: #e05a5a; }
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  .loot-btn { width: 100%; padding: 5px; background: #0a1f0a; border: 1px solid #1a3a1a; border-radius: 5px; color: #5aca5a; font-size: 11px; font-weight: 700; letter-spacing: 1px; cursor: pointer; margin-bottom: 6px; }
-  .loot-btn:hover { background: #0e280e; }
-  .loot-btn.off { background: #0a140a; border-color: #141e14; color: #2a4a2a; cursor: not-allowed; }
-  
-  .custom-time-row { display: flex; gap: 4px; align-items: center; }
-  .custom-time-input {
-    flex: 1; background: #060e06; border: 1px solid #1a3a1a; border-radius: 4px;
-    color: #8aca8a; font-family: monospace; font-size: 12px; padding: 3px 5px;
-    width: 0; outline: none;
-  }
-  .custom-time-input::placeholder { color: #2a4a2a; }
-  .custom-time-input:focus { border-color: #3a7a3a; }
-  
-  .set-btn {
-    background: #0a1a0a; border: 1px solid #2a4a2a; border-radius: 4px;
-    color: #4a8a4a; font-size: 10px; font-weight: 700; letter-spacing: 1px;
-    padding: 3px 6px; cursor: pointer; white-space: nowrap;
-  }
-  .set-btn:hover { background: #0e240e; color: #6aaa6a; border-color: #3a6a3a; }
-  .remove-btn { position: absolute; top: 6px; right: 6px; width: 14px; height: 14px; background: #1a1a1a; border: none; border-radius: 50%; color: #444; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
-  .remove-btn:hover { color: #c04040; background: #2a1a1a; }
-  
-  .footer { text-align: center; font-size: 10px; color: #2a4a2a; font-family: monospace; letter-spacing: 2px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #141e14; }
-  .legend { display: flex; justify-content: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
-  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #6a8a70; }
-  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .transform-style-3d {
+            transform-style: preserve-3d;
+        }
+        .backface-hidden {
+            backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(107, 114, 128, 0.8);
+        }
 </style>
 </head>
-<body>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen transition-colors duration-200">
 
-<h1>&#x2316; 187MOB</h1>
-<div class="subtitle">LAST ISLAND OF SURVIVAL</div>
+    <div id="app" class="flex h-screen overflow-hidden">
 
-<div class="legend">
-  <div class="legend-item"><div class="legend-dot" style="background:#3a9a3a"></div> Green — 45m</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#2a70c0"></div> Blue — 1h</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#8a3aba"></div> Purple — 2h</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#e0b05a"></div> Spirit — 30m</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#e05a5a"></div> Mask — 1h</div>
-</div>
+        <aside id="sidebar" class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0 z-20 transition-all duration-300">
 
-<div id="app"></div>
+            <div class="h-16 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+                        <i class="fa-solid fa-graduation-cap text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-500" id="app-name-text"></h1>
+                        <p id="app-subtitle-text" class="text-xs text-gray-400 font-medium"></p>
+                    </div>
+                </div>
+                <button id="toggle-sidebar-btn" onclick="toggleSidebar()" class="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
 
-<div class="footer">BETLOG &nbsp;|&nbsp; TANGINA MO R1DC PANAY KA TULOG</div>
+            <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+                <button onclick="switchTab('overview')" id="nav-overview" class="nav-item w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400">
+                    <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+                    <span>Overview</span>
+                </button>
 
-<script>
-const SPAWN = { green: 45*60, blue: 60*60, purple: 120*60, spirit: 30*60, mask: 60*60 };
-const LABEL = { green: 'Green Room', blue: 'Blue Room', purple: 'Purple Room', spirit: 'Spirit Monster', mask: 'Mask' };
+                <button onclick="switchTab('courses')" id="nav-courses" class="nav-item w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50">
+                    <i class="fa-solid fa-book-open w-5 text-center"></i>
+                    <span>Courses</span>
+                </button>
 
-let defaultMonuments = [
-  { id:'mil',    name:'Military Base',  rooms:[{c:'green'},{c:'blue'},{c:'purple'},{c:'spirit'},{c:'mask'}] },
-  { id:'harbor', name:'Harbor',         rooms:[{c:'green'},{c:'blue'},{c:'spirit'},{c:'mask'}] },
-  { id:'airport',name:'Airport',        rooms:[{c:'green'},{c:'blue'},{c:'spirit'},{c:'mask'}] },
-  { id:'bomb',   name:'Bomb Shelter',   rooms:[{c:'green'},{c:'blue'},{c:'spirit'},{c:'mask'}] },
-  { id:'power',  name:'Nuclear Plant',  rooms:[{c:'green'},{c:'blue'},{c:'purple'},{c:'spirit'},{c:'mask'}] },
-  { id:'bio',    name:'Bio Research',   rooms:[{c:'blue'},{c:'purple'},{c:'spirit'},{c:'mask'}] },
-  { id:'bandit', name:'Bandit Camp',    rooms:[{c:'green'},{c:'blue'},{c:'spirit'},{c:'mask'}] },
-];
+                <button onclick="switchTab('classroom-hub')" id="nav-classroom-hub" class="nav-item w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50">
+                    <i class="fa-brands fa-google w-5 text-center text-green-500"></i>
+                    <span class="flex-1 text-left">Classroom Hub</span>
+                    <span id="classroom-badge" class="hidden px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 font-normal">Connected</span>
+                </button>
 
-let monuments = [];
-let timers = {};
+                <button onclick="switchTab('timetable')" id="nav-timetable" class="nav-item w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50">
+                    <i class="fa-solid fa-calendar-week w-5 text-center"></i>
+                    <span>Weekly Timetable</span>
+                </button>
 
-function saveState() {
-  localStorage.setItem('187mob_monuments', JSON.stringify(monuments));
-  localStorage.setItem('187mob_timers', JSON.stringify(timers));
-}
+                <button onclick="switchTab('assignments')" id="nav-assignments" class="nav-item w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50">
+                    <i class="fa-solid fa-list-check w-5 text-center"></i>
+                    <span>Assignments & Tasks</span>
+                </button>
 
-function loadState() {
-  const savedMonuments = localStorage.getItem('187mob_monuments');
-  const savedTimers = localStorage.getItem('187mob_timers');
-  
-  if (savedMonuments) {
-    monuments = JSON.parse(savedMonuments);
-    
-    monuments.forEach(mon => {
-      mon.rooms = mon.rooms.filter(r => r.c !== 'bandit' && r.c !== 'research');
-      
-      if (mon.rooms.length === 0) {
-        if (mon.id === 'bandit') {
-          mon.rooms = [{c:'green'},{c:'blue'},{c:'spirit'},{c:'mask'}];
-        } else {
-          mon.rooms = [{c:'spirit'}];
-        }
-      }
-    });
+                <button onclick="switchTab('gpa')" id="nav-gpa" class="nav-item w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50">
+                    <i class="fa-solid fa-calculator w-5 text-center"></i>
+                    <span>GPA Predictor</span>
+                </button>
 
-    if (!monuments.some(m => m.id === 'bandit')) {
-      monuments.push({ id:'bandit', name:'Bandit Camp', rooms:[{c:'green'},{c:'blue'},{c:'spirit'},{c:'mask'}] });
-    }
-  } else {
-    monuments = JSON.parse(JSON.stringify(defaultMonuments));
-  }
+                <button onclick="switchTab('pomodoro')" id="nav-pomodoro" class="nav-item w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50">
+                    <i class="fa-solid fa-stopwatch w-5 text-center"></i>
+                    <span>Timer</span>
+                </button>
 
-  if (savedTimers) {
-    timers = JSON.parse(savedTimers);
-    const now = Date.now();
-    Object.keys(timers).forEach(k => {
-      const t = timers[k];
-      if (t.active && t.endTime) {
-        t.remaining = Math.max(0, Math.round((t.endTime - now) / 1000));
-        if (t.remaining <= 0) t.active = false;
-      }
-    });
-  }
-}
+                <button onclick="switchTab('flashcards')" id="nav-flashcards" class="nav-item w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50">
+                    <i class="fa-solid fa-layer-group w-5 text-center"></i>
+                    <span>Flashcards</span>
+                </button>
 
-function key(mId, ri) { return mId + '_' + ri; }
-function fmt(s) {
-  if (s <= 0) return 'READY';
-  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
-  if (h > 0) return h+':'+pad(m)+':'+pad(sec);
-  return pad(m)+':'+pad(sec);
-}
-function pad(n) { return String(n).padStart(2,'0'); }
+                <button onclick="switchTab('notes')" id="nav-notes" class="nav-item w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50">
+                    <i class="fa-solid fa-note-sticky w-5 text-center"></i>
+                    <span>Smart Notes</span>
+                </button>
 
-function parseTime(str) {
-  str = str.trim().replace(/[;\s]/g, ':').replace(/:{2,}/g, ':');
-  const parts = str.split(':').map(Number);
-  if (parts.some(isNaN)) return null;
-  if (parts.length === 3) return parts[0]*3600 + parts[1]*60 + parts[2];
-  if (parts.length === 2) return parts[0]*60 + parts[1];
-  if (parts.length === 1 && parts[0] > 0) return parts[0]*60;
-  return null;
-}
+                <button onclick="switchTab('analytics')" id="nav-analytics" class="nav-item w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50">
+                    <i class="fa-solid fa-chart-line w-5 text-center"></i>
+                    <span>Analytics</span>
+                </button>
 
-function render() {
-  const app = document.getElementById('app');
-  app.innerHTML = '';
-  monuments.forEach(mon => {
-    const el = document.createElement('div');
-    el.className = 'monument';
-    el.innerHTML = `
-      <div class="monument-header">
-        <span class="monument-name">${mon.name}</span>
-        <button class="add-room-btn" onclick="addRoom('${mon.id}')">+ Add Room</button>
-      </div>
-      <div class="rooms" id="rooms-${mon.id}"></div>`;
-    app.appendChild(el);
-    const container = el.querySelector(`#rooms-${mon.id}`);
-    
-    mon.rooms.forEach((room, ri) => {
-      const k = key(mon.id, ri);
-      if (!timers[k]) timers[k] = { remaining: 0, active: false, total: SPAWN[room.c], endTime: null };
-      const t = timers[k];
-      const total = t.total || SPAWN[room.c];
-      const pct = t.active ? Math.round((t.remaining / total) * 100) : 100;
-      const state = t.active ? 'counting' : 'ready';
-      
-      const tile = document.createElement('div');
-      tile.className = `room ${room.c}`;
-      tile.dataset.state = state;
-      tile.id = `tile-${k}`;
-      tile.innerHTML = `
-        <button class="remove-btn" onclick="removeRoom('${mon.id}',${ri})" title="Remove">&#x2715;</button>
-        <div class="room-top">
-          <span class="room-label">${LABEL[room.c]}</span>
-          <div class="color-picker">
-            <div class="dot green ${room.c==='green'?'active':''}" onclick="changeColor('${mon.id}',${ri},'green')" title="Green Room"></div>
-            <div class="dot blue ${room.c==='blue'?'active':''}" onclick="changeColor('${mon.id}',${ri},'blue')" title="Blue Room"></div>
-            <div class="dot purple ${room.c==='purple'?'active':''}" onclick="changeColor('${mon.id}',${ri},'purple')" title="Purple Room"></div>
-            <div class="dot spirit ${room.c==='spirit'?'active':''}" onclick="changeColor('${mon.id}',${ri},'spirit')" title="Spirit Monster"></div>
-            <div class="dot mask ${room.c==='mask'?'active':''}" onclick="changeColor('${mon.id}',${ri},'mask')" title="Mask"></div>
-          </div>
+                <button onclick="switchTab('settings')" id="nav-settings" class="nav-item w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50">
+                    <i class="fa-solid fa-gear w-5 text-center"></i>
+                    <span>Settings</span>
+                </button>
+            </nav>
+
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+                <div class="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-brands fa-google text-emerald-500"></i>
+                        <div class="text-xs">
+                            <p id="google-status-text" class="font-medium text-gray-700 dark:text-gray-200">Google Classroom</p>
+                            <p id="google-sub-text" class="text-gray-500 dark:text-gray-400">Tap Sync to get homework</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <button onclick="startKidSync()" class="text-xs px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 font-bold">
+                            <i class="fa-solid fa-arrow-down mr-1"></i>Sync in
+                        </button>
+                        <button onclick="syncOut()" class="text-xs px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50 font-bold border border-red-200 dark:border-red-800">
+                            <i class="fa-solid fa-arrow-up mr-1"></i>Sync out
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+            <header class="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 sm:px-6 z-10">
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleSidebar()" class="lg:hidden text-gray-500 dark:text-gray-400 hover:text-gray-700 focus:outline-none">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                    <div>
+                        <h2 id="page-title" class="text-xl font-bold text-gray-800 dark:text-white">Overview</h2>
+                        <p id="page-subtitle" class="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Welcome back to your academic portal</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2 sm:space-x-3">
+
+                    <div class="relative group">
+                        <button class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center space-x-1.5 shadow-sm transition-all">
+                            <i class="fa-solid fa-plus text-xs"></i>
+                            <span class="hidden sm:inline">Quick Add</span>
+                            <i class="fa-solid fa-chevron-down text-xs"></i>
+                        </button>
+                        <div class="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-1 hidden group-hover:block z-50">
+                            <a href="#" onclick="openCourseModal()" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="fa-solid fa-book-open mr-2 text-blue-500"></i> New Course</a>
+                            <a href="#" onclick="openAssignmentModal()" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="fa-solid fa-tasks mr-2 text-indigo-500"></i> New Task / Assignment</a>
+                            <a href="#" onclick="openTimetableModal()" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="fa-solid fa-calendar-plus mr-2 text-emerald-500"></i> Class Slot</a>
+                            <a href="#" onclick="openNoteModal()" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="fa-solid fa-note-sticky mr-2 text-amber-500"></i> Quick Note</a>
+                        </div>
+                    </div>
+
+                    <div class="relative group">
+                        <button class="p-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" title="Data Management">
+                            <i class="fa-solid fa-database"></i>
+                        </button>
+                        <div class="absolute right-0 mt-1 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-1 hidden group-hover:block z-50">
+                            <a href="#" onclick="exportJSONData()" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="fa-solid fa-download mr-2 text-emerald-500"></i> Export JSON Backup</a>
+                            <a href="#" onclick="triggerImportJSON()" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="fa-solid fa-upload mr-2 text-blue-500"></i> Import JSON Data</a>
+                            <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                            <a href="#" onclick="resetToDefaultData()" class="block px-4 py-2 text-sm text-amber-600 dark:text-amber-400 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="fa-solid fa-rotate-left mr-2"></i> Reset Settings to Default</a>
+                            <a href="#" onclick="clearAllData()" class="block px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="fa-solid fa-trash-can mr-2"></i> Clear All Data</a>
+                        </div>
+                    </div>
+
+                    <button onclick="toggleDarkMode()" class="p-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" title="Toggle Light/Dark Theme">
+                        <i id="theme-icon" class="fa-solid fa-moon"></i>
+                    </button>
+                </div>
+            </header>
+
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50 dark:bg-gray-900">
+
+                <section id="view-overview" class="view-panel space-y-6">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center space-x-4">
+                            <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-book"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Enrolled Courses</p>
+                                <p id="stat-courses-count" class="text-2xl font-bold text-gray-800 dark:text-white">0</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center space-x-4">
+                            <div class="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-clock"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Pending Tasks</p>
+                                <p id="stat-pending-tasks" class="text-2xl font-bold text-gray-800 dark:text-white">0</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center space-x-4">
+                            <div class="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Current GPA</p>
+                                <p id="stat-current-gpa" class="text-2xl font-bold text-gray-800 dark:text-white">0.00</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center space-x-4">
+                            <div class="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-calendar-day"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Classes Today</p>
+                                <p id="stat-today-classes" class="text-2xl font-bold text-gray-800 dark:text-white">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                        <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white flex items-center space-x-2">
+                                    <i class="fa-solid fa-list-check text-blue-500"></i>
+                                    <span>Upcoming Tasks & Deadlines</span>
+                                </h3>
+                                <button onclick="switchTab('assignments')" class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">View All</button>
+                            </div>
+                            <div id="overview-tasks-list" class="space-y-3">
+
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white flex items-center space-x-2">
+                                    <i class="fa-solid fa-calendar-day text-purple-500"></i>
+                                    <span>Today's Classes</span>
+                                </h3>
+                                <span id="overview-today-date" class="text-xs text-gray-400 font-medium"></span>
+                            </div>
+                            <div id="overview-today-schedule" class="space-y-3">
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-2xl p-6 text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg">
+                        <div class="flex items-center space-x-4">
+                            <div class="text-4xl text-white"><i class="fa-solid fa-graduation-cap"></i></div>
+                            <div>
+                                <h4 class="font-extrabold text-xl">Get my homework from Google Classroom</h4>
+                                <p class="text-sm text-emerald-100">One tap. We find your classes and homework for you!</p>
+                            </div>
+                        </div>
+                        <button onclick="startKidSync()" class="px-6 py-4 bg-white text-emerald-800 font-extrabold rounded-2xl text-lg shadow-lg hover:scale-105 transition-transform">
+                            Sync in
+                        </button>
+                    </div>
+                </section>
+
+                <section id="view-courses" class="view-panel hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Enrolled Courses</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Manage your subjects, instructors, locations, and grade targets.</p>
+                        </div>
+                        <button onclick="openCourseModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl text-sm flex items-center space-x-2 shadow">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Add Course</span>
+                        </button>
+                    </div>
+
+                    <div id="courses-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                    </div>
+                </section>
+
+                <section id="view-classroom-hub" class="view-panel hidden space-y-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 space-y-6">
+                        <div class="text-center space-y-3">
+                            <div class="text-5xl text-emerald-600"><i class="fa-solid fa-graduation-cap"></i></div>
+                            <h3 class="text-2xl font-extrabold text-gray-800 dark:text-white">Get my Google Classroom homework</h3>
+                            <p class="text-gray-500 dark:text-gray-400">Just 3 easy steps. You can't break anything!</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                            <div class="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/20"><div class="text-3xl text-blue-600"><i class="fa-solid fa-hand-pointer"></i></div><p class="font-bold mt-1">1. Tap the big green button</p></div>
+                            <div class="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20"><div class="text-3xl text-amber-500"><i class="fa-solid fa-user-circle"></i></div><p class="font-bold mt-1">2. Pick your school Google account</p></div>
+                            <div class="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20"><div class="text-3xl text-emerald-600"><i class="fa-solid fa-circle-check"></i></div><p class="font-bold mt-1">3. Tap "Allow" and wait</p></div>
+                        </div>
+                        <div class="text-center space-y-2">
+                            <button onclick="startKidSync()" class="px-10 py-5 bg-emerald-600 hover:bg-emerald-700 text-white text-2xl font-extrabold rounded-3xl shadow-lg hover:scale-105 transition-transform">
+                                Sync in
+                            </button>
+                            <p id="hub-last-sync" class="text-sm text-gray-500 dark:text-gray-400">You haven't synced yet.</p>
+                            <div class="pt-3">
+                                <button onclick="syncOut()" class="px-5 py-2.5 rounded-2xl text-sm font-bold text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-800">
+                                    <i class="fa-solid fa-arrow-up mr-1"></i>Sync out
+                                </button>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">Deletes the classes and homework that came from Google Classroom and disconnects it.</p>
+                            </div>
+                        </div>
+                        <details class="text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-4">
+                            <summary class="cursor-pointer font-semibold">Grown-up setup (kids can skip this)</summary>
+                            <div class="mt-3 flex flex-wrap gap-3">
+                                <button onclick="openGoogleSyncModal()" class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg font-semibold">Set up Google connection</button>
+                                <a href="https://classroom.google.com" target="_blank" class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg font-semibold">Open Google Classroom</a>
+                            </div>
+                        </details>
+
+                        <div>
+                            <h4 class="font-bold text-sm text-gray-800 dark:text-white mb-3">My Classes</h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300">
+                                        <tr>
+                                            <th class="p-3 rounded-l-lg">Course Name</th>
+                                            <th class="p-3">Course Code</th>
+                                            <th class="p-3">Source</th>
+                                            <th class="p-3">Status</th>
+                                            <th class="p-3 rounded-r-lg">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="hub-courses-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-timetable" class="view-panel hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Weekly Timetable Grid</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Organize and manage your recurring weekly classes and lectures.</p>
+                        </div>
+                        <button onclick="openTimetableModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl text-sm flex items-center space-x-2 shadow">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Add Class Slot</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-x-auto p-4">
+                        <div class="min-w-[700px] grid grid-cols-7 gap-3">
+
+                            <div class="text-center font-bold text-sm py-2 bg-gray-100 dark:bg-gray-700/50 rounded-lg text-gray-700 dark:text-gray-200">Mon</div>
+                            <div class="text-center font-bold text-sm py-2 bg-gray-100 dark:bg-gray-700/50 rounded-lg text-gray-700 dark:text-gray-200">Tue</div>
+                            <div class="text-center font-bold text-sm py-2 bg-gray-100 dark:bg-gray-700/50 rounded-lg text-gray-700 dark:text-gray-200">Wed</div>
+                            <div class="text-center font-bold text-sm py-2 bg-gray-100 dark:bg-gray-700/50 rounded-lg text-gray-700 dark:text-gray-200">Thu</div>
+                            <div class="text-center font-bold text-sm py-2 bg-gray-100 dark:bg-gray-700/50 rounded-lg text-gray-700 dark:text-gray-200">Fri</div>
+                            <div class="text-center font-bold text-sm py-2 bg-gray-100 dark:bg-gray-700/50 rounded-lg text-gray-700 dark:text-gray-200">Sat</div>
+                            <div class="text-center font-bold text-sm py-2 bg-gray-100 dark:bg-gray-700/50 rounded-lg text-gray-700 dark:text-gray-200">Sun</div>
+
+                            <div id="timetable-col-Monday" class="space-y-3 min-h-[350px] bg-gray-50/50 dark:bg-gray-900/30 p-2 rounded-xl border border-dashed border-gray-200 dark:border-gray-700"></div>
+                            <div id="timetable-col-Tuesday" class="space-y-3 min-h-[350px] bg-gray-50/50 dark:bg-gray-900/30 p-2 rounded-xl border border-dashed border-gray-200 dark:border-gray-700"></div>
+                            <div id="timetable-col-Wednesday" class="space-y-3 min-h-[350px] bg-gray-50/50 dark:bg-gray-900/30 p-2 rounded-xl border border-dashed border-gray-200 dark:border-gray-700"></div>
+                            <div id="timetable-col-Thursday" class="space-y-3 min-h-[350px] bg-gray-50/50 dark:bg-gray-900/30 p-2 rounded-xl border border-dashed border-gray-200 dark:border-gray-700"></div>
+                            <div id="timetable-col-Friday" class="space-y-3 min-h-[350px] bg-gray-50/50 dark:bg-gray-900/30 p-2 rounded-xl border border-dashed border-gray-200 dark:border-gray-700"></div>
+                            <div id="timetable-col-Saturday" class="space-y-3 min-h-[350px] bg-gray-50/50 dark:bg-gray-900/30 p-2 rounded-xl border border-dashed border-gray-200 dark:border-gray-700"></div>
+                            <div id="timetable-col-Sunday" class="space-y-3 min-h-[350px] bg-gray-50/50 dark:bg-gray-900/30 p-2 rounded-xl border border-dashed border-gray-200 dark:border-gray-700"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-assignments" class="view-panel hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Assignments &  Task Board</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Track task statuses, priority tags, and submission deadlines.</p>
+                        </div>
+                        <div class="flex items-center space-x-3 w-full sm:w-auto">
+
+                            <select id="assignment-filter-course" onchange="renderAssignments()" class="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-xs">
+                                <option value="all">All Courses</option>
+                            </select>
+                            <button onclick="openAssignmentModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl text-sm flex items-center space-x-2 shadow">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>New Task</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+                        <div class="bg-gray-100 dark:bg-gray-800/60 p-4 rounded-2xl border border-gray-200 dark:border-gray-700/80 flex flex-col min-h-[500px]">
+                            <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                                <span class="font-bold text-sm text-gray-700 dark:text-gray-300 flex items-center space-x-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                    <span>To-Do</span>
+                                </span>
+                                <span id="count-todo" class="px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 rounded-full font-bold">0</span>
+                            </div>
+                            <div id="kanban-todo" class="space-y-3 flex-1 overflow-y-auto"></div>
+                        </div>
+
+                        <div class="bg-gray-100 dark:bg-gray-800/60 p-4 rounded-2xl border border-gray-200 dark:border-gray-700/80 flex flex-col min-h-[500px]">
+                            <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                                <span class="font-bold text-sm text-gray-700 dark:text-gray-300 flex items-center space-x-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                                    <span>In Progress</span>
+                                </span>
+                                <span id="count-inprogress" class="px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 rounded-full font-bold">0</span>
+                            </div>
+                            <div id="kanban-inprogress" class="space-y-3 flex-1 overflow-y-auto"></div>
+                        </div>
+
+                        <div class="bg-gray-100 dark:bg-gray-800/60 p-4 rounded-2xl border border-gray-200 dark:border-gray-700/80 flex flex-col min-h-[500px]">
+                            <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                                <span class="font-bold text-sm text-gray-700 dark:text-gray-300 flex items-center space-x-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                                    <span>Submitted</span>
+                                </span>
+                                <span id="count-submitted" class="px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 rounded-full font-bold">0</span>
+                            </div>
+                            <div id="kanban-submitted" class="space-y-3 flex-1 overflow-y-auto"></div>
+                        </div>
+
+                        <div class="bg-gray-100 dark:bg-gray-800/60 p-4 rounded-2xl border border-gray-200 dark:border-gray-700/80 flex flex-col min-h-[500px]">
+                            <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                                <span class="font-bold text-sm text-gray-700 dark:text-gray-300 flex items-center space-x-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                    <span>Completed</span>
+                                </span>
+                                <span id="count-completed" class="px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 rounded-full font-bold">0</span>
+                            </div>
+                            <div id="kanban-completed" class="space-y-3 flex-1 overflow-y-auto"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-gpa" class="view-panel hidden space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                        <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
+                            <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-4">
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-800 dark:text-white">GPA Calculator & Course Grades</h3>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Input course credit hours and achieved or estimated percentage/letter grades.</p>
+                                </div>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300">
+                                        <tr>
+                                            <th class="p-3 rounded-l-lg">Course Code</th>
+                                            <th class="p-3">Course Name</th>
+                                            <th class="p-3">Credits (editable)</th>
+                                            <th class="p-3">Grade % (editable)</th>
+                                            <th class="p-3 rounded-r-lg">Letter / Points</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="gpa-courses-tbody" class="divide-y divide-gray-200 dark:divide-gray-700">
+
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 space-y-6">
+                            <h3 class="text-base font-bold text-gray-800 dark:text-white">GPA Targets & Prediction</h3>
+
+                            <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-semibold text-gray-600 dark:text-gray-300">Calculated Cumulative GPA</span>
+                                    <span id="gpa-calc-val" class="text-2xl font-black text-blue-600 dark:text-blue-400">0.00</span>
+                                </div>
+                                <div class="w-full bg-blue-200 dark:bg-blue-950 rounded-full h-2">
+                                    <div id="gpa-progress-bar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+                                </div>
+                                <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                                    <span>0.0</span>
+                                    <span>Target: <strong id="gpa-calc-target-display" class="text-gray-700 dark:text-gray-200"></strong></span>
+                                    <span id="gpa-max-label"></span>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3">
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Target Grade Predictor</h4>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Desired Overall Target GPA</label>
+                                    <input type="number" id="target-gpa-input" step="0.01" min="0" oninput="onTargetGpaInput()" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm">
+                                </div>
+                                <div id="gpa-predictor-result" class="p-3 bg-gray-100 dark:bg-gray-700/50 rounded-lg text-xs leading-relaxed text-gray-700 dark:text-gray-300">
+                                    Input your target above to compute required upcoming grade averages.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
+                        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 dark:border-gray-700 pb-4">
+                            <div>
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Grade Scale</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">A grade at or above the minimum % earns those points. Change anything; every GPA on the dashboard updates.</p>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2 text-xs">
+                                <label class="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-300">Highest GPA
+                                    <input type="number" id="gpa-max-input" step="0.1" min="1" onchange="updateSetting('gpaMax', this.value, 'number')" class="w-20 p-1.5 rounded bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600">
+                                </label>
+                                <button onclick="addScaleRow()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold">Add row</button>
+                                <button onclick="resetGradeScale()" class="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg font-semibold">Reset scale</button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300">
+                                    <tr>
+                                        <th class="p-3 rounded-l-lg">Minimum %</th>
+                                        <th class="p-3">Letter</th>
+                                        <th class="p-3">Points</th>
+                                        <th class="p-3 rounded-r-lg w-12"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="grade-scale-tbody" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-pomodoro" class="view-panel hidden space-y-6">
+                    <div class="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-sm border border-gray-200 dark:border-gray-700 text-center space-y-8">
+                        <div>
+                            <h3 class="text-2xl font-bold text-gray-800 dark:text-white">Pomodoro Focus Timer</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Boost focus and prevent burnout with structured work & break intervals.</p>
+                        </div>
+
+                        <div class="inline-flex p-1.5 bg-gray-100 dark:bg-gray-700 rounded-2xl space-x-1">
+                            <button id="pomo-mode-work" onclick="setPomoMode('work')" class="px-5 py-2 rounded-xl text-xs font-bold transition-all bg-white dark:bg-gray-800 text-blue-600 shadow-sm">Work Focus</button>
+                            <button id="pomo-mode-short" onclick="setPomoMode('short')" class="px-5 py-2 rounded-xl text-xs font-bold transition-all text-gray-600 dark:text-gray-300 hover:text-gray-900">Short Break</button>
+                            <button id="pomo-mode-long" onclick="setPomoMode('long')" class="px-5 py-2 rounded-xl text-xs font-bold transition-all text-gray-600 dark:text-gray-300 hover:text-gray-900">Long Break</button>
+                        </div>
+
+                        <div class="relative w-64 h-64 mx-auto flex items-center justify-center">
+                            <div class="text-6xl font-black tracking-tight text-gray-800 dark:text-white font-mono" id="pomo-timer-display"></div>
+                        </div>
+
+                        <div class="flex items-center justify-center space-x-4">
+                            <button id="pomo-start-btn" onclick="togglePomoTimer()" class="px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/30 text-base transition-all transform active:scale-95">
+                                <i class="fa-solid fa-play mr-2"></i> Start Focus Session
+                            </button>
+                            <button onclick="resetPomoTimer()" class="p-3.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-2xl transition-all">
+                                <i class="fa-solid fa-rotate-right"></i>
+                            </button>
+                        </div>
+
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-6 text-left space-y-3">
+                            <h4 class="font-bold text-sm text-gray-800 dark:text-white">Completed Sessions Today</h4>
+                            <div id="pomo-history-list" class="space-y-2 text-xs text-gray-600 dark:text-gray-300">
+                                <p class="text-gray-400 italic">No study sessions logged today yet.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-flashcards" class="view-panel hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Flashcards Deck Builder & Study Mode</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Master subject concepts with interactive 3D memory card flip review.</p>
+                        </div>
+                        <button onclick="openDeckModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl text-sm flex items-center space-x-2 shadow">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Create New Deck</span>
+                        </button>
+                    </div>
+
+                    <div id="flashcard-decks-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                    </div>
+
+                    <div id="flashcard-study-container" class="hidden bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 space-y-6 max-w-xl mx-auto">
+                        <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-4">
+                            <button onclick="closeFlashcardStudy()" class="text-xs text-gray-500 dark:text-gray-400 hover:underline flex items-center space-x-1">
+                                <i class="fa-solid fa-arrow-left"></i>
+                                <span>Back to Decks</span>
+                            </button>
+                            <span id="study-progress-text" class="text-xs font-bold text-gray-600 dark:text-gray-300"></span>
+                        </div>
+
+                        <div onclick="flipCard()" class="perspective-1000 cursor-pointer h-64 w-full">
+                            <div id="flashcard-inner" class="relative w-full h-full duration-500 transform-style-3d bg-blue-50 dark:bg-gray-700/60 rounded-2xl border border-blue-200 dark:border-gray-600 p-6 flex items-center justify-center text-center shadow-lg">
+
+                                <div class="absolute inset-0 backface-hidden p-6 flex flex-col items-center justify-center">
+                                    <span class="text-xs uppercase font-bold text-blue-500 mb-2">Question / Concept</span>
+                                    <p id="flashcard-front-text" class="text-lg font-bold text-gray-800 dark:text-white"></p>
+                                    <p class="text-xs text-gray-400 mt-4"><i class="fa-solid fa-rotate mr-1"></i> Click card to flip</p>
+                                </div>
+
+                                <div class="absolute inset-0 backface-hidden rotate-y-180 p-6 flex flex-col items-center justify-center">
+                                    <span class="text-xs uppercase font-bold text-emerald-500 mb-2">Answer / Definition</span>
+                                    <p id="flashcard-back-text" class="text-base text-gray-800 dark:text-white"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-2">
+                            <button onclick="markCardScore(false)" class="px-5 py-2.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-semibold rounded-xl text-sm hover:bg-red-200">
+                                <i class="fa-solid fa-xmark mr-1"></i> Needs Review
+                            </button>
+                            <button onclick="markCardScore(true)" class="px-5 py-2.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-semibold rounded-xl text-sm hover:bg-emerald-200">
+                                <i class="fa-solid fa-check mr-1"></i> Got It!
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-notes" class="view-panel hidden space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                        <div class="lg:col-span-2 space-y-4">
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                <input type="text" id="notes-search-input" oninput="renderNotes()" placeholder="Search notes..." class="px-3.5 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs w-full sm:w-64">
+                                <button onclick="openNoteModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl text-sm flex items-center space-x-2 shadow">
+                                    <i class="fa-solid fa-plus"></i>
+                                    <span>New Note</span>
+                                </button>
+                            </div>
+
+                            <div id="notes-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 space-y-4 flex flex-col h-[500px]">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white flex items-center space-x-2">
+                                    <i class="fa-solid fa-pen-to-square text-amber-500"></i>
+                                    <span>Quick Scratchpad</span>
+                                </h3>
+                                <span class="text-xs text-gray-400">Auto-saves to browser</span>
+                            </div>
+                            <textarea id="scratchpad-textarea" oninput="saveScratchpad()" placeholder="Jot down quick lecture ideas, formulas, or reminders here..." class="flex-1 w-full p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none resize-none text-gray-800 dark:text-gray-100"></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-analytics" class="view-panel hidden space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
+                            <h3 class="text-base font-bold text-gray-800 dark:text-white">Course Grade Performance</h3>
+                            <div class="h-64 relative">
+                                <canvas id="chart-grades"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
+                            <h3 class="text-base font-bold text-gray-800 dark:text-white">Assignment Completion Breakdown</h3>
+                            <div class="h-64 relative">
+                                <canvas id="chart-tasks"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-settings" class="view-panel hidden space-y-6">
+                    <div class="max-w-2xl bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 space-y-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Settings</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Saved in this browser. Change them any time. The grade scale and highest GPA are on the GPA Predictor page.</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                            <div>
+                                <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">App name</label>
+                                <input type="text" id="set-app-name" onchange="updateSetting('appName', this.value.trim() || DEFAULT_SETTINGS.appName)" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                            </div>
+                            <div>
+                                <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Subtitle</label>
+                                <input type="text" id="set-app-subtitle" onchange="updateSetting('appSubtitle', this.value.trim())" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                            </div>
+                            <div>
+                                <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Default credit hours for new courses</label>
+                                <input type="number" id="set-default-credits" min="0" max="12" step="0.5" onchange="updateSetting('defaultCredits', this.value, 'number')" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 text-xs">
+                            <h4 class="font-bold text-gray-800 dark:text-white">Pomodoro lengths (minutes)</h4>
+                            <div class="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Work focus</label>
+                                    <input type="number" id="set-pomo-work" min="1" max="180" onchange="updatePomoSetting('work', this.value)" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Short break</label>
+                                    <input type="number" id="set-pomo-short" min="1" max="180" onchange="updatePomoSetting('short', this.value)" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Long break</label>
+                                    <input type="number" id="set-pomo-long" min="1" max="180" onchange="updatePomoSetting('long', this.value)" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-2 border-t border-gray-200 dark:border-gray-700">
+                            <button onclick="resetToDefaultData()" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-semibold">Reset settings to default</button>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
         </div>
-        <div class="timer" id="tmr-${k}">${t.active ? fmt(t.remaining) : 'READY'}</div>
-        <div class="bar"><div class="bar-fill" id="bar-${k}" style="width:${pct}%"></div></div>
-        <button class="loot-btn ${t.active?'off':''}" id="btn-${k}" onclick="${t.active ? '' : `loot('${mon.id}',${ri},'${room.c}')`}">
-          ${t.active ? 'Counting...' : '&#x2605; Looted!'}
-        </button>
-        <div class="custom-time-row">
-          <input class="custom-time-input" id="inp-${k}" type="text" placeholder="hh:mm:ss" maxlength="8" />
-          <button class="set-btn" onclick="setCustomTime('${mon.id}',${ri},'${room.c}')">SET</button>
-        </div>`;
-      container.appendChild(tile);
-    });
-  });
-}
+    </div>
 
-function loot(mId, ri, color) {
-  const k = key(mId, ri);
-  const secs = SPAWN[color];
-  timers[k] = { remaining: secs, active: true, total: secs, endTime: Date.now() + (secs * 1000) };
-  updateTile(mId, ri, color);
-  saveState();
-}
+    <div id="modal-course" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-4">
+            <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                <h3 id="modal-course-title" class="font-bold text-lg text-gray-800 dark:text-white">Add New Course</h3>
+                <button onclick="closeModal('modal-course')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="form-course" onsubmit="handleCourseSubmit(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="course-id">
+                <div>
+                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Course Code (e.g. CS101)</label>
+                    <input type="text" id="course-code" required class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Course Title</label>
+                    <input type="text" id="course-name" required class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Instructor</label>
+                        <input type="text" id="course-instructor" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Room / Building</label>
+                        <input type="text" id="course-room" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Credit Hours</label>
+                        <input type="number" id="course-credits" min="0" max="12" step="0.5" required class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Current Grade (%)</label>
+                        <input type="number" id="course-grade" value="" min="0" max="100" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Target Grade (%)</label>
+                        <input type="number" id="course-target" value="" min="0" max="100" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Google Classroom URL (Optional)</label>
+                    <input type="url" id="course-link" placeholder="https://classroom.google.com/c/..." class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                </div>
+                <div class="pt-3 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal('modal-course')" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold">Save Course</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-function setCustomTime(mId, ri, color) {
-  const k = key(mId, ri);
-  const inp = document.getElementById(`inp-${k}`);
-  if (!inp) return;
-  const secs = parseTime(inp.value);
-  if (!secs || secs <= 0) {
-    inp.style.borderColor = '#aa3333';
-    setTimeout(() => { inp.style.borderColor = ''; }, 800);
-    return;
-  }
-  inp.value = '';
-  timers[k] = { remaining: secs, active: true, total: secs, endTime: Date.now() + (secs * 1000) };
-  updateTile(mId, ri, color);
-  saveState();
-}
+    <div id="modal-assignment" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-4">
+            <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                <h3 id="modal-assignment-title" class="font-bold text-lg text-gray-800 dark:text-white">Add New Task</h3>
+                <button onclick="closeModal('modal-assignment')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="form-assignment" onsubmit="handleAssignmentSubmit(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="assignment-id">
+                <div>
+                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Task Title</label>
+                    <input type="text" id="assignment-title" required class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Linked Course</label>
+                    <select id="assignment-course" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
 
-function changeColor(mId, ri, color) {
-  const mon = monuments.find(m => m.id === mId);
-  const k = key(mId, ri);
-  mon.rooms[ri].c = color;
-  timers[k] = { remaining: 0, active: false, total: SPAWN[color], endTime: null };
-  render();
-  saveState();
-}
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Due Date</label>
+                        <input type="date" id="assignment-duedate" required class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Priority</label>
+                        <select id="assignment-priority" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                            <option value="High">High</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Kanban Status</label>
+                    <select id="assignment-status" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                        <option value="todo">To-Do</option>
+                        <option value="inprogress">In Progress</option>
+                        <option value="submitted">Submitted</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+                <div class="pt-3 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal('modal-assignment')" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold">Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-function addRoom(mId) {
-  const mon = monuments.find(m => m.id === mId);
-  mon.rooms.push({ c: 'spirit' });
-  render();
-  saveState();
-}
+    <div id="modal-timetable" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-4">
+            <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                <h3 class="font-bold text-lg text-gray-800 dark:text-white">Add Timetable Class Slot</h3>
+                <button onclick="closeModal('modal-timetable')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="form-timetable" onsubmit="handleTimetableSubmit(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Course</label>
+                    <select id="timetable-course" onchange="updateTimetableCourseFull()" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
 
-function removeRoom(mId, ri) {
-  const mon = monuments.find(m => m.id === mId);
-  if (mon.rooms.length <= 1) return;
-  const k = key(mId, ri);
-  delete timers[k];
-  mon.rooms.splice(ri, 1);
-  const newTimers = {};
-  Object.keys(timers).forEach(tk => {
-    const parts = tk.split('_');
-    const tid = parts[0], tri = parseInt(parts[1]);
-    if (tid !== mId) { newTimers[tk] = timers[tk]; return; }
-    if (tri < ri) newTimers[tk] = timers[tk];
-    else if (tri > ri) newTimers[key(tid, tri-1)] = timers[tk];
-  });
-  timers = newTimers;
-  render();
-  saveState();
-}
+                    </select>
+                    <p id="timetable-course-full" class="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400 break-words"></p>
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Day of Week</label>
+                    <select id="timetable-day" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                        <option value="Sunday">Sunday</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Start Time</label>
+                        <input type="time" id="timetable-start" required class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">End Time</label>
+                        <input type="time" id="timetable-end" required class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Room / Lab</label>
+                    <input type="text" id="timetable-room" placeholder="e.g. Science Hall 202" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                </div>
+                <div class="pt-3 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal('modal-timetable')" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold">Save Slot</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-function updateTile(mId, ri, color) {
-  const k = key(mId, ri);
-  const t = timers[k];
-  const total = t.total || SPAWN[color];
-  const pct = t.active ? Math.round((t.remaining / total) * 100) : 100;
-  const tile = document.getElementById(`tile-${k}`);
-  const tmr  = document.getElementById(`tmr-${k}`);
-  const bar  = document.getElementById(`bar-${k}`);
-  const btn  = document.getElementById(`btn-${k}`);
-  
-  if (!tile) return;
-  
-  if (t.active && t.remaining > 0) {
-    tile.dataset.state = 'counting';
-    tmr.textContent = fmt(t.remaining);
-    bar.style.width = pct + '%';
-    btn.className = 'loot-btn off';
-    btn.textContent = 'Counting...';
-    btn.onclick = null;
-  } else {
-    t.active = false; t.remaining = 0;
-    tile.dataset.state = 'ready';
-    tmr.textContent = 'READY';
-    bar.style.width = '100%';
-    btn.className = 'loot-btn';
-    btn.innerHTML = '&#x2605; Looted!';
-    btn.onclick = () => loot(mId, ri, color);
-  }
-}
+    <div id="modal-deck" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-4">
+            <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                <h3 class="font-bold text-lg text-gray-800 dark:text-white">Create Flashcard Deck</h3>
+                <button onclick="closeModal('modal-deck')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="form-deck" onsubmit="handleDeckSubmit(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Deck Title</label>
+                    <input type="text" id="deck-title" required placeholder="e.g. Midterm Concepts" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Linked Course</label>
+                    <select id="deck-course" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
 
-setInterval(() => {
-  const now = Date.now();
-  let stateChanged = false;
-  
-  monuments.forEach(mon => {
-    mon.rooms.forEach((room, ri) => {
-      const k = key(mon.id, ri);
-      const t = timers[k];
-      if (t && t.active && t.endTime) {
-        t.remaining = Math.max(0, Math.round((t.endTime - now) / 1000));
-        if (t.remaining === 0) {
-          t.active = false;
-          stateChanged = true;
+                    </select>
+                </div>
+                <div class="pt-3 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal('modal-deck')" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold">Create Deck</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-card" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-4">
+            <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                <h3 class="font-bold text-lg text-gray-800 dark:text-white">Add Card to Deck</h3>
+                <button onclick="closeModal('modal-card')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="form-card" onsubmit="handleCardSubmit(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="card-deck-id">
+                <div>
+                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Front (Question / Prompt)</label>
+                    <textarea id="card-front" required rows="3" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg"></textarea>
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Back (Answer / Solution)</label>
+                    <textarea id="card-back" required rows="3" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg"></textarea>
+                </div>
+                <div class="pt-3 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal('modal-card')" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold">Add Card</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-note" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-4">
+            <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                <h3 class="font-bold text-lg text-gray-800 dark:text-white">Smart Note Editor</h3>
+                <button onclick="closeModal('modal-note')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="form-note" onsubmit="handleNoteSubmit(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="note-id">
+                <div>
+                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+                    <input type="text" id="note-title" required class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Course Tag</label>
+                    <select id="note-course" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Content</label>
+                    <textarea id="note-content" required rows="6" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg font-mono"></textarea>
+                </div>
+                <div class="pt-3 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal('modal-note')" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold">Save Note</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-google-config" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-4">
+            <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                <h3 class="font-bold text-lg text-gray-800 dark:text-white flex items-center space-x-2">
+                    <i class="fa-brands fa-google text-emerald-500"></i>
+                    <span>Connect Google Classroom (one time)</span>
+                </h3>
+                <button onclick="closeModal('modal-google-config')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-4 text-xs text-gray-600 dark:text-gray-300">
+                <p>To read your classes and homework, Shixy needs a free "Client ID" from Google. You only do this once. Follow the steps below, then paste the ID at the bottom.</p>
+
+                <div id="google-origin-note" class="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200"></div>
+
+                <div class="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800 space-y-3 text-blue-900 dark:text-blue-100">
+                    <p class="font-bold text-sm"><i class="fa-solid fa-graduation-cap mr-1"></i> Beginner's guide (about 10 minutes)</p>
+                    <p>Google sometimes renames buttons, so the wording may be a little different on your screen.</p>
+                    <ol class="list-decimal list-outside ml-4 space-y-2.5">
+                        <li><strong>Open Google Cloud Console.</strong> Go to <a href="https://console.cloud.google.com" target="_blank" rel="noopener" class="underline font-semibold">console.cloud.google.com</a> and sign in with the same Google account you use for Classroom.</li>
+                        <li><strong>Make a project.</strong> Click the project name at the top, press <em>New Project</em>, name it <em>Shixy</em>, press <em>Create</em>, then make sure it is selected at the top.</li>
+                        <li><strong>Turn on the Classroom API.</strong> Open the menu, choose <em>APIs &amp; Services</em>, then <em>Library</em>. Search for <em>Google Classroom API</em>, open it and press <em>Enable</em>.</li>
+                        <li><strong>Set up the consent screen.</strong> In <em>APIs &amp; Services</em> choose <em>OAuth consent screen</em> (or <em>Google Auth Platform</em>) and press <em>Get started</em>. Enter the app name <em>Shixy</em> and your email, choose <em>External</em> as the audience, and finish.</li>
+                        <li><strong>Add yourself as a test user.</strong> On the same screen open <em>Audience</em>, find <em>Test users</em>, press <em>Add users</em> and type the Google email you use for Classroom. Save.</li>
+                        <li><strong>Create the Client ID.</strong> Go to <em>Credentials</em>, press <em>Create credentials</em>, then <em>OAuth client ID</em>. Pick <em>Web application</em> as the type. Under <em>Authorized JavaScript origins</em> press <em>Add URI</em> and paste the address from the yellow box above. Press <em>Create</em>.</li>
+                        <li><strong>Copy the Client ID.</strong> It is a long text ending in <span class="font-mono">.apps.googleusercontent.com</span>. You do not need the "client secret".</li>
+                        <li><strong>Paste it below</strong> and press <em>Save and connect</em>. A Google window opens. If it says "Google hasn't verified this app", press <em>Advanced</em>, then <em>Go to Shixy</em>. This is your own app, so it is safe. Allow the read-only permissions.</li>
+                    </ol>
+                    <div class="pt-2 border-t border-blue-200 dark:border-blue-800 space-y-1">
+                        <p class="font-bold">Good to know</p>
+                        <ul class="list-disc list-outside ml-4 space-y-1">
+                            <li>Shixy can only <strong>read</strong> your courses and homework. It cannot change anything in Classroom.</li>
+                            <li>The address must match exactly. <span class="font-mono">localhost</span> and <span class="font-mono">127.0.0.1</span> count as different addresses.</li>
+                            <li>School accounts: if Google blocks the sign-in, your school may have turned this off. Ask your teacher or IT admin, or try with a personal account.</li>
+                            <li>Still saying "access blocked"? Check that your email is in the test users list (step 5).</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold mb-1 text-gray-700 dark:text-gray-200">Paste your Client ID here</label>
+                    <input type="text" id="google-client-id-input" placeholder="e.g. 1234567890-xxx.apps.googleusercontent.com" class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg font-mono">
+                </div>
+            </div>
+            <div class="pt-3 flex items-center justify-between">
+                <div class="flex space-x-2">
+                    <button onclick="closeModal('modal-google-config')" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-xs">Close</button>
+                    <button onclick="saveGoogleClientId()" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-xs">Save and connect</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-sync" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full p-8 shadow-2xl text-center space-y-4">
+            <div id="sync-icon" class="text-6xl text-emerald-600"><i class="fa-solid fa-graduation-cap"></i></div>
+            <h3 id="sync-title" class="text-2xl font-extrabold">Getting ready…</h3>
+            <p id="sync-msg" class="text-gray-600 dark:text-gray-300"></p>
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"><div id="sync-bar" class="h-full bg-emerald-500 transition-all duration-500" style="width:5%"></div></div>
+            <div id="sync-actions" class="hidden flex flex-col gap-2 pt-2"></div>
+        </div>
+    </div>
+
+    <div id="modal-import" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-4">
+            <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                <h3 class="font-bold text-lg text-gray-800 dark:text-white">Import JSON Data</h3>
+                <button onclick="closeModal('modal-import')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <p class="text-gray-600 dark:text-gray-300">Paste your raw JSON export data to restore courses, assignments, decks, and notes:</p>
+                <textarea id="import-json-textarea" rows="6" placeholder='{"courses": [...], "assignments": [...]}' class="w-full p-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg font-mono text-xs"></textarea>
+            </div>
+            <div class="pt-3 flex justify-end space-x-2">
+                <button onclick="closeModal('modal-import')" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-xs">Cancel</button>
+                <button onclick="processJSONImport()" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-xs">Import & Replace</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <script>
+        const DEFAULT_SETTINGS = {
+            googleClientId: '', theme: 'dark',
+            appName: 'Shixy', appSubtitle: 'Academic Hub',
+            gpaMax: 4, defaultCredits: 3, targetGpa: 3.8,
+            gradeScale: [
+                { min: 90, letter: 'A', point: 4 },
+                { min: 80, letter: 'B', point: 3 },
+                { min: 70, letter: 'C', point: 2 },
+                { min: 60, letter: 'D', point: 1 },
+                { min: 0,  letter: 'F', point: 0 }
+            ],
+            pomodoro: { work: 25, short: 5, long: 15 }
+        };
+        const clone = o => JSON.parse(JSON.stringify(o));
+
+        const DEFAULT_STATE = {
+            courses: [], timetable: [], assignments: [], flashcards: [], notes: [], scratchpad: '',
+            settings: clone(DEFAULT_SETTINGS)
+        };
+
+        function ensureSettings() {
+            const s = state.settings || {};
+            state.settings = Object.assign(clone(DEFAULT_SETTINGS), s);
+            if (state.settings.appName === 'EduDash Pro') state.settings.appName = DEFAULT_SETTINGS.appName;
+            state.settings.pomodoro = Object.assign({}, DEFAULT_SETTINGS.pomodoro, s.pomodoro || {});
+            if (!Array.isArray(state.settings.gradeScale) || !state.settings.gradeScale.length) state.settings.gradeScale = clone(DEFAULT_SETTINGS.gradeScale);
+            ['courses', 'timetable', 'assignments', 'flashcards', 'notes'].forEach(k => { if (!Array.isArray(state[k])) state[k] = []; });
         }
-        updateTile(mon.id, ri, room.c);
-      }
-    });
-  });
 
-  if (stateChanged) saveState();
-}, 1000);
+        let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
 
-loadState();
-render();
+        let pomoInterval = null;
+        let pomoSecondsLeft = 0;
+        let pomoCurrentMode = 'work';
+        let isPomoRunning = false;
+
+        let activeDeckForStudy = null;
+        let studyCardIndex = 0;
+
+        let chartGradesObj = null;
+        let chartTasksObj = null;
+
+        function loadState() {
+            const saved = (localStorage.getItem('shixy_data') || localStorage.getItem('edudash_pro_data'));
+            if (saved) {
+                try {
+                    state = JSON.parse(saved);
+                    ensureSettings();
+                    if (!state.settings.sampleRemoved) {
+                        const bad = x => /^(course-[123]|course-gc-demo|tt-\d|task-[123]|task-gc-demo|deck-1|note-1)$/.test(x.id);
+                        ['courses','timetable','assignments','flashcards','notes'].forEach(k => state[k] = (state[k] || []).filter(x => !bad(x)));
+                        if ((state.scratchpad || '').startsWith('Reminders:\n- Pick up lab textbook')) state.scratchpad = '';
+                        state.settings.sampleRemoved = true;
+                    }
+                } catch (e) {
+                    console.error('Failed to parse state:', e);
+                }
+            }
+        }
+
+        function persist() {
+            localStorage.setItem('shixy_data', JSON.stringify(state));
+        }
+
+        function saveState() {
+            persist();
+            refreshCurrentUI();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            applyTheme();
+            renderAllViews();
+            setPomoMode('work');
+            initCharts();
+
+            const sp = document.getElementById('scratchpad-textarea');
+            if (sp) sp.value = state.scratchpad || '';
+
+            const todaySpan = document.getElementById('overview-today-date');
+            if (todaySpan) {
+                const options = { weekday: 'long', month: 'short', day: 'numeric' };
+                todaySpan.textContent = new Date().toLocaleDateString(undefined, options);
+            }
+        });
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.view-panel').forEach(panel => panel.classList.add('hidden'));
+            const target = document.getElementById(`view-${tabId}`);
+            if (target) target.classList.remove('hidden');
+
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                btn.classList.remove('text-blue-600', 'bg-blue-50', 'dark:bg-blue-900/30', 'dark:text-blue-400');
+                btn.classList.add('text-gray-600', 'dark:text-gray-300');
+            });
+
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeNav) {
+                activeNav.classList.remove('text-gray-600', 'dark:text-gray-300');
+                activeNav.classList.add('text-blue-600', 'bg-blue-50', 'dark:bg-blue-900/30', 'dark:text-blue-400');
+            }
+
+            const pageTitle = document.getElementById('page-title');
+            if (pageTitle) {
+                const titles = {
+                    'overview': 'Overview Dashboard',
+                    'courses': 'Course Manager',
+                    'classroom-hub': 'Google Classroom Hub',
+                    'timetable': 'Weekly Timetable',
+                    'assignments': 'Assignments & Tasks',
+                    'gpa': 'GPA Calculator & Predictor',
+                    'pomodoro': 'Pomodoro Focus Timer',
+                    'flashcards': 'Flashcards Deck Builder',
+                    'notes': 'Smart Notes & Scratchpad',
+                    'analytics': 'Performance Analytics',
+                    'settings': 'Settings'
+                };
+                pageTitle.textContent = titles[tabId] || 'Shixy';
+            }
+
+            refreshCurrentUI();
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('-translate-x-full');
+        }
+
+        function applyTheme() {
+            if (state.settings.theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                document.getElementById('theme-icon').className = 'fa-solid fa-sun';
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('theme-icon').className = 'fa-solid fa-moon';
+            }
+        }
+
+        function toggleDarkMode() {
+            state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
+            saveState();
+            applyTheme();
+        }
+
+        function refreshCurrentUI() {
+            renderOverview();
+            renderCourses();
+            renderClassroomHub();
+            renderTimetable();
+            renderAssignments();
+            renderGPA();
+            renderFlashcards();
+            renderNotes();
+            updateCharts();
+            populateCourseDropdowns();
+            applyBranding();
+            renderSettings();
+            updatePomoLabels();
+        }
+
+        function renderAllViews() {
+            refreshCurrentUI();
+        }
+
+        function renderOverview() {
+            document.getElementById('stat-courses-count').textContent = state.courses.length;
+
+            const pending = state.assignments.filter(a => a.status !== 'completed').length;
+            document.getElementById('stat-pending-tasks').textContent = pending;
+
+            const gpa = calculateCumulativeGPA();
+            document.getElementById('stat-current-gpa').textContent = gpa.toFixed(2);
+
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const todayName = days[new Date().getDay()];
+            const todayClasses = state.timetable.filter(t => t.day === todayName);
+            document.getElementById('stat-today-classes').textContent = todayClasses.length;
+
+            const overviewTasks = document.getElementById('overview-tasks-list');
+            overviewTasks.innerHTML = '';
+            const pendingTasks = state.assignments.filter(a => a.status !== 'completed').slice(0, 4);
+
+            if (pendingTasks.length === 0) {
+                overviewTasks.innerHTML = '<p class="text-xs text-gray-400 italic">No pending tasks!</p>';
+            } else {
+                pendingTasks.forEach(t => {
+                    const course = state.courses.find(c => c.id === t.courseId) || { code: 'General' };
+                    overviewTasks.innerHTML += `
+                        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/40 rounded-xl">
+                            <div class="flex items-center space-x-3">
+                                <input type="checkbox" onchange="toggleTaskStatus('${t.id}')" ${t.status === 'completed' ? 'checked' : ''} class="w-4 h-4 text-blue-600 rounded">
+                                <div>
+                                    <p class="text-xs font-bold text-gray-800 dark:text-white">${escapeHtml(t.title)}</p>
+                                    <div class="flex items-center space-x-2 mt-0.5">
+                                        <span class="text-[10px] px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 font-semibold">${escapeHtml(course.code)}</span>
+                                        <span class="text-[10px] text-gray-400"><i class="fa-regular fa-clock mr-1"></i>Due ${t.dueDate}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            ${t.isGoogleClassroom ? '<i class="fa-brands fa-google text-emerald-500" title="Synced with Google Classroom"></i>' : ''}
+                        </div>
+                    `;
+                });
+            }
+
+            const overviewSchedule = document.getElementById('overview-today-schedule');
+            overviewSchedule.innerHTML = '';
+            if (todayClasses.length === 0) {
+                overviewSchedule.innerHTML = '<p class="text-xs text-gray-400 italic">No classes scheduled for today.</p>';
+            } else {
+                todayClasses.forEach(c => {
+                    const course = state.courses.find(cr => cr.id === c.courseId) || { name: 'Class', code: 'N/A' };
+                    overviewSchedule.innerHTML += `
+                        <div class="p-3 border-l-4 border-blue-500 bg-gray-50 dark:bg-gray-700/40 rounded-r-xl">
+                            <p class="text-xs font-bold text-gray-800 dark:text-white">${escapeHtml(course.code)} - ${escapeHtml(course.name)}</p>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400"><i class="fa-regular fa-clock mr-1"></i>${c.startTime} - ${c.endTime} | ${escapeHtml(c.room)}</p>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        function renderCourses() {
+            const grid = document.getElementById('courses-grid');
+            grid.innerHTML = '';
+
+            if (state.courses.length === 0) {
+                grid.innerHTML = '<p class="text-xs text-gray-400 italic col-span-full">No courses added yet. Click "Add Course" above!</p>';
+                return;
+            }
+
+            state.courses.forEach(c => {
+                grid.innerHTML += `
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-200 dark:border-gray-700 space-y-4 relative flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">${escapeHtml(c.code)}</span>
+                                <div class="flex items-center space-x-1">
+                                    <button onclick="editCourse('${c.id}')" class="p-1.5 text-gray-400 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button>
+                                    <button onclick="deleteCourse('${c.id}')" class="p-1.5 text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
+                                </div>
+                            </div>
+                            <h4 class="font-bold text-base text-gray-800 dark:text-white leading-snug">${escapeHtml(c.name)}</h4>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><i class="fa-solid fa-user-tie mr-1"></i>${escapeHtml(c.instructor || 'Instructor N/A')}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400"><i class="fa-solid fa-location-dot mr-1"></i>${escapeHtml(c.room || 'Room N/A')}</p>
+                        </div>
+
+                        <div class="border-t border-gray-100 dark:border-gray-700/60 pt-3 space-y-2">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-gray-500">Current Grade:</span>
+                                <span class="font-bold text-gray-800 dark:text-white">${c.currentGrade === '' || c.currentGrade == null ? 'Not set' : c.currentGrade + '%'}</span>
+                            </div>
+                            <div class="flex justify-between text-xs">
+                                <span class="text-gray-500">Target Grade:</span>
+                                <span class="font-bold text-emerald-600 dark:text-emerald-400">${c.targetGrade === '' || c.targetGrade == null ? 'Not set' : c.targetGrade + '%'}</span>
+                            </div>
+                            ${c.classroomLink ? `
+                                <a href="${c.classroomLink}" target="_blank" class="mt-2 text-xs text-emerald-600 dark:text-emerald-400 hover:underline flex items-center space-x-1 pt-1">
+                                    <i class="fa-brands fa-google"></i>
+                                    <span>Google Classroom Portal</span>
+                                </a>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderClassroomHub() {
+            const badge = document.getElementById('classroom-badge');
+            if (badge) badge.classList.toggle('hidden', !state.settings.gcConnected);
+            const lastSync = document.getElementById('hub-last-sync');
+            if (lastSync) lastSync.textContent = state.settings.lastSync ? 'Last synced: ' + state.settings.lastSync : "You haven't synced yet.";
+
+            const tableBody = document.getElementById('hub-courses-table-body');
+            tableBody.innerHTML = '';
+
+            state.courses.forEach(c => {
+                const fromGoogle = String(c.id).startsWith('gc-');
+                tableBody.innerHTML += `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                        <td class="p-3 font-semibold text-gray-800 dark:text-gray-200">${escapeHtml(c.name)}</td>
+                        <td class="p-3 text-gray-500">${escapeHtml(c.code)}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 rounded ${fromGoogle ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'} text-[10px] font-bold">${fromGoogle ? 'Google Classroom' : 'Added by me'}</span></td>
+                        <td class="p-3">${fromGoogle ? '<span class="text-emerald-500 font-bold"><i class="fa-solid fa-check mr-1"></i>Synced</span>' : '<span class="text-gray-400">Manual</span>'}</td>
+                        <td class="p-3">
+                            ${c.classroomLink ? `<a href="${escapeHtml(c.classroomLink)}" target="_blank" class="px-3 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 rounded text-xs font-medium">Open Portal</a>` : '<span class="text-gray-400">-</span>'}
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderTimetable() {
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            days.forEach(day => {
+                const col = document.getElementById(`timetable-col-${day}`);
+                if (!col) return;
+                col.innerHTML = '';
+
+                const daySlots = state.timetable.filter(t => t.day === day);
+                if (daySlots.length === 0) {
+                    col.innerHTML = '<p class="text-[11px] text-gray-400 text-center mt-4 italic">No class</p>';
+                } else {
+                    daySlots.forEach(s => {
+                        const course = state.courses.find(c => c.id === s.courseId) || { code: 'N/A', name: 'Class' };
+                        col.innerHTML += `
+                            <div class="p-2.5 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-1 relative group">
+                                <button onclick="deleteTimetableSlot('${s.id}')" class="absolute top-1 right-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i class="fa-solid fa-xmark text-xs"></i>
+                                </button>
+                                <p class="text-xs font-bold text-gray-800 dark:text-white leading-tight">${escapeHtml(course.code)}</p>
+                                <p class="text-[11px] text-gray-700 dark:text-gray-200 leading-snug break-words">${escapeHtml(course.name)}</p>
+                                <p class="text-[10px] text-gray-500 dark:text-gray-400">${s.startTime} - ${s.endTime}</p>
+                                <p class="text-[10px] text-gray-400">${escapeHtml(s.room)}</p>
+                            </div>
+                        `;
+                    });
+                }
+            });
+        }
+
+        function renderAssignments() {
+            const filterCourse = document.getElementById('assignment-filter-course').value;
+
+            const cols = {
+                todo: document.getElementById('kanban-todo'),
+                inprogress: document.getElementById('kanban-inprogress'),
+                submitted: document.getElementById('kanban-submitted'),
+                completed: document.getElementById('kanban-completed')
+            };
+
+            Object.values(cols).forEach(col => { if (col) col.innerHTML = ''; });
+
+            const filtered = state.assignments.filter(a => filterCourse === 'all' || a.courseId === filterCourse);
+
+            document.getElementById('count-todo').textContent = filtered.filter(a => a.status === 'todo').length;
+            document.getElementById('count-inprogress').textContent = filtered.filter(a => a.status === 'inprogress').length;
+            document.getElementById('count-submitted').textContent = filtered.filter(a => a.status === 'submitted').length;
+            document.getElementById('count-completed').textContent = filtered.filter(a => a.status === 'completed').length;
+
+            filtered.forEach(task => {
+                const targetCol = cols[task.status] || cols.todo;
+                const course = state.courses.find(c => c.id === task.courseId) || { code: 'General' };
+
+                let prioColor = 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+                if (task.priority === 'High') prioColor = 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
+                if (task.priority === 'Medium') prioColor = 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300';
+
+                targetCol.innerHTML += `
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-3">
+                        <div class="flex items-start justify-between">
+                            <span class="px-2 py-0.5 text-[10px] font-bold rounded ${prioColor}">${escapeHtml(task.priority)}</span>
+                            <div class="flex items-center space-x-1">
+                                <button onclick="editAssignment('${task.id}')" class="text-gray-400 hover:text-blue-500 p-1"><i class="fa-solid fa-pen text-xs"></i></button>
+                                <button onclick="deleteAssignment('${task.id}')" class="text-gray-400 hover:text-red-500 p-1"><i class="fa-solid fa-trash text-xs"></i></button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="font-bold text-xs text-gray-800 dark:text-white leading-snug">${escapeHtml(task.title)}</h4>
+                            <p class="text-[11px] text-blue-600 dark:text-blue-400 font-semibold mt-1">${escapeHtml(course.code)}</p>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700/60 text-[10px] text-gray-400">
+                            <span><i class="fa-regular fa-calendar mr-1"></i>${task.dueDate}</span>
+                            ${task.isGoogleClassroom ? '<i class="fa-brands fa-google text-emerald-500" title="Google Classroom Task"></i>' : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function gradeRow(pct) {
+            return [...state.settings.gradeScale].sort((a, b) => b.min - a.min).find(r => pct >= r.min);
+        }
+        function gradeToPoint(pct) { const r = gradeRow(pct); return r ? r.point : 0; }
+        function gradeToLetter(pct) { const r = gradeRow(pct); return r && r.letter ? r.letter : ''; }
+        function creditsOf(c) { const v = parseFloat(c.credits); return isNaN(v) ? state.settings.defaultCredits : v; }
+        function hasGrade(c) { return !(c.currentGrade === '' || c.currentGrade == null || isNaN(parseFloat(c.currentGrade))); }
+
+        function calculateCumulativeGPA() {
+            let totalPoints = 0;
+            let totalCredits = 0;
+            state.courses.forEach(c => {
+                if (!hasGrade(c)) return;
+                const credits = creditsOf(c);
+                totalPoints += gradeToPoint(parseFloat(c.currentGrade)) * credits;
+                totalCredits += credits;
+            });
+            return totalCredits > 0 ? (totalPoints / totalCredits) : 0;
+        }
+
+        function editCourseField(id, field, val) {
+            const c = state.courses.find(x => x.id === id);
+            if (!c) return;
+            c[field] = val === '' ? '' : parseFloat(val);
+            if (field === 'currentGrade') c.gradeManual = true;
+            saveState();
+        }
+
+        function renderGPA() {
+            const tbody = document.getElementById('gpa-courses-tbody');
+            tbody.innerHTML = '';
+            const max = state.settings.gpaMax;
+
+            state.courses.forEach(c => {
+                const graded = hasGrade(c);
+                const pct = parseFloat(c.currentGrade);
+                const pointText = graded ? `${gradeToLetter(pct)} &middot; ${Number(gradeToPoint(pct).toFixed(2))}` : '--';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-3 font-bold text-gray-800 dark:text-gray-200">${escapeHtml(c.code)}</td>
+                        <td class="p-3 text-gray-600 dark:text-gray-400">${escapeHtml(c.name)}</td>
+                        <td class="p-3"><input type="number" min="0" max="12" step="0.5" value="${c.credits ?? ''}" placeholder="${state.settings.defaultCredits}" onchange="editCourseField('${c.id}','credits',this.value)" class="w-16 p-1.5 rounded bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600"></td>
+                        <td class="p-3"><input type="number" min="0" max="100" placeholder="--" value="${c.currentGrade ?? ''}" onchange="editCourseField('${c.id}','currentGrade',this.value)" class="w-20 p-1.5 rounded bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600"> %</td>
+                        <td class="p-3 font-bold text-blue-600 dark:text-blue-400">${pointText}</td>
+                    </tr>
+                `;
+            });
+
+            const currentGPA = calculateCumulativeGPA();
+            document.getElementById('gpa-calc-val').textContent = currentGPA.toFixed(2);
+            document.getElementById('gpa-progress-bar').style.width = `${Math.min(100, (currentGPA / max) * 100)}%`;
+            document.getElementById('gpa-max-label').textContent = Number(max.toFixed(2));
+
+            const targetInput = document.getElementById('target-gpa-input');
+            targetInput.max = max;
+            if (document.activeElement !== targetInput) targetInput.value = state.settings.targetGpa;
+            const maxInput = document.getElementById('gpa-max-input');
+            if (document.activeElement !== maxInput) maxInput.value = max;
+
+            renderGradeScale();
+            calculateGpaPrediction();
+        }
+
+        function onTargetGpaInput() {
+            const v = parseFloat(document.getElementById('target-gpa-input').value);
+            if (!isNaN(v)) { state.settings.targetGpa = v; persist(); }
+            calculateGpaPrediction();
+        }
+
+        function calculateGpaPrediction() {
+            const targetVal = state.settings.targetGpa;
+            document.getElementById('gpa-calc-target-display').textContent = targetVal.toFixed(2);
+
+            const currentGPA = calculateCumulativeGPA();
+            const resultBox = document.getElementById('gpa-predictor-result');
+
+            if (currentGPA >= targetVal) {
+                resultBox.innerHTML = `<span class="text-emerald-600 dark:text-emerald-400 font-bold"><i class="fa-solid fa-circle-check mr-1"></i> You are currently meeting or exceeding your target GPA!</span>`;
+            } else {
+                const diff = (targetVal - currentGPA).toFixed(2);
+                resultBox.innerHTML = `To reach target <strong>${targetVal.toFixed(2)}</strong>, you need an average bump of ~<strong>${diff} GPA points</strong> across remaining course assessments.`;
+            }
+        }
+
+        function renderGradeScale() {
+            const tbody = document.getElementById('grade-scale-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            state.settings.gradeScale.forEach((r, i) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-3"><input type="number" min="0" max="100" step="0.5" value="${r.min}" onchange="updateScaleRow(${i},'min',this.value)" class="w-20 p-1.5 rounded bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600"> %</td>
+                        <td class="p-3"><input type="text" maxlength="4" value="${escapeHtml(r.letter || '')}" onchange="updateScaleRow(${i},'letter',this.value)" class="w-16 p-1.5 rounded bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600"></td>
+                        <td class="p-3"><input type="number" min="0" step="0.01" value="${r.point}" onchange="updateScaleRow(${i},'point',this.value)" class="w-20 p-1.5 rounded bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600"></td>
+                        <td class="p-3"><button onclick="removeScaleRow(${i})" class="text-gray-400 hover:text-red-500" title="Remove row"><i class="fa-solid fa-trash text-xs"></i></button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function updateScaleRow(i, field, val) {
+            const r = state.settings.gradeScale[i];
+            if (!r) return;
+            if (field === 'letter') r.letter = val.trim();
+            else {
+                const n = parseFloat(val);
+                if (isNaN(n)) { renderGradeScale(); return; }
+                r[field] = n;
+            }
+            state.settings.gradeScale.sort((a, b) => b.min - a.min);
+            saveState();
+        }
+
+        function addScaleRow() {
+            const lowest = Math.min(...state.settings.gradeScale.map(r => r.min));
+            state.settings.gradeScale.push({ min: Math.max(0, lowest - 5), letter: '', point: 0 });
+            state.settings.gradeScale.sort((a, b) => b.min - a.min);
+            saveState();
+        }
+
+        function removeScaleRow(i) {
+            if (state.settings.gradeScale.length <= 1) { showToast('Keep at least one row in the scale.', 'error'); return; }
+            state.settings.gradeScale.splice(i, 1);
+            saveState();
+        }
+
+        function resetGradeScale() {
+            state.settings.gradeScale = clone(DEFAULT_SETTINGS.gradeScale);
+            state.settings.gpaMax = DEFAULT_SETTINGS.gpaMax;
+            saveState();
+            showToast('Grade scale reset.', 'info');
+        }
+
+        function updateSetting(key, val, type) {
+            if (type === 'number') {
+                val = parseFloat(val);
+                if (isNaN(val) || val < 0 || (key === 'gpaMax' && val <= 0)) { refreshCurrentUI(); return; }
+            }
+            state.settings[key] = val;
+            saveState();
+        }
+
+        function updatePomoSetting(key, val) {
+            const v = parseInt(val, 10);
+            if (!(v > 0)) { refreshCurrentUI(); return; }
+            state.settings.pomodoro[key] = v;
+            saveState();
+            if (!isPomoRunning) setPomoMode(pomoCurrentMode);
+        }
+
+        function applyBranding() {
+            const s = state.settings;
+            const n = document.getElementById('app-name-text');
+            const sub = document.getElementById('app-subtitle-text');
+            if (n) n.textContent = s.appName;
+            if (sub) sub.textContent = s.appSubtitle;
+            document.title = s.appName;
+        }
+
+        function renderSettings() {
+            const s = state.settings;
+            const set = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v; };
+            set('set-app-name', s.appName);
+            set('set-app-subtitle', s.appSubtitle);
+            set('set-default-credits', s.defaultCredits);
+            set('set-pomo-work', s.pomodoro.work);
+            set('set-pomo-short', s.pomodoro.short);
+            set('set-pomo-long', s.pomodoro.long);
+        }
+
+        function updatePomoLabels() {
+            const p = state.settings.pomodoro;
+            const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+            set('pomo-mode-work', `Work Focus (${p.work}m)`);
+            set('pomo-mode-short', `Short Break (${p.short}m)`);
+            set('pomo-mode-long', `Long Break (${p.long}m)`);
+        }
+
+        function setPomoMode(mode) {
+            pomoCurrentMode = mode;
+            if (isPomoRunning) togglePomoTimer();
+
+            pomoSecondsLeft = (state.settings.pomodoro[mode] || 1) * 60;
+
+            updatePomoDisplay();
+            updatePomoLabels();
+
+            ['work', 'short', 'long'].forEach(m => {
+                const btn = document.getElementById(`pomo-mode-${m}`);
+                if (m === mode) {
+                    btn.className = "px-5 py-2 rounded-xl text-xs font-bold transition-all bg-white dark:bg-gray-800 text-blue-600 shadow-sm";
+                } else {
+                    btn.className = "px-5 py-2 rounded-xl text-xs font-bold transition-all text-gray-600 dark:text-gray-300 hover:text-gray-900";
+                }
+            });
+        }
+
+        function updatePomoDisplay() {
+            const mins = Math.floor(pomoSecondsLeft / 60);
+            const secs = pomoSecondsLeft % 60;
+            document.getElementById('pomo-timer-display').textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function togglePomoTimer() {
+            const btn = document.getElementById('pomo-start-btn');
+            if (isPomoRunning) {
+                clearInterval(pomoInterval);
+                isPomoRunning = false;
+                btn.innerHTML = `<i class="fa-solid fa-play mr-2"></i> Start Focus Session`;
+                btn.className = "px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/30 text-base transition-all transform active:scale-95";
+            } else {
+                if (pomoSecondsLeft <= 0) pomoSecondsLeft = (state.settings.pomodoro[pomoCurrentMode] || 1) * 60;
+                isPomoRunning = true;
+                btn.innerHTML = `<i class="fa-solid fa-pause mr-2"></i> Pause Timer`;
+                btn.className = "px-8 py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-2xl shadow-lg shadow-amber-500/30 text-base transition-all transform active:scale-95";
+
+                pomoInterval = setInterval(() => {
+                    pomoSecondsLeft--;
+                    updatePomoDisplay();
+
+                    if (pomoSecondsLeft <= 0) {
+                        clearInterval(pomoInterval);
+                        isPomoRunning = false;
+                        playChimeSound();
+                        showToast('Pomodoro session completed! Take a break.', 'success');
+                        btn.innerHTML = `<i class="fa-solid fa-play mr-2"></i> Start Focus Session`;
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetPomoTimer() {
+            setPomoMode(pomoCurrentMode);
+        }
+
+        function playChimeSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.5);
+
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 0.8);
+            } catch (e) {
+                console.log('Audio playback constrained by user gesture', e);
+            }
+        }
+
+        function renderFlashcards() {
+            const grid = document.getElementById('flashcard-decks-grid');
+            grid.innerHTML = '';
+
+            if (state.flashcards.length === 0) {
+                grid.innerHTML = '<p class="text-xs text-gray-400 italic col-span-full">No flashcard decks created yet.</p>';
+                return;
+            }
+
+            state.flashcards.forEach(deck => {
+                const course = state.courses.find(c => c.id === deck.courseId) || { code: 'General' };
+                grid.innerHTML += `
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-200 dark:border-gray-700 space-y-4 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">${escapeHtml(course.code)}</span>
+                                <button onclick="deleteDeck('${deck.id}')" class="text-gray-400 hover:text-red-500 p-1"><i class="fa-solid fa-trash text-xs"></i></button>
+                            </div>
+                            <h4 class="font-bold text-base text-gray-800 dark:text-white">${escapeHtml(deck.title)}</h4>
+                            <p class="text-xs text-gray-400 mt-1">${deck.cards.length} Flashcard(s)</p>
+                        </div>
+
+                        <div class="flex items-center space-x-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
+                            <button onclick="startStudyDeck('${deck.id}')" class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs transition-colors">
+                                <i class="fa-solid fa-play mr-1"></i> Study Deck
+                            </button>
+                            <button onclick="openCardModal('${deck.id}')" class="px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 font-semibold rounded-xl text-xs">
+                                + Card
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function startStudyDeck(deckId) {
+            const deck = state.flashcards.find(d => d.id === deckId);
+            if (!deck || deck.cards.length === 0) {
+                showToast('Deck has no cards yet. Add cards first!', 'error');
+                return;
+            }
+
+            activeDeckForStudy = deck;
+            studyCardIndex = 0;
+
+            document.getElementById('flashcard-decks-grid').classList.add('hidden');
+            document.getElementById('flashcard-study-container').classList.remove('hidden');
+
+            renderCurrentStudyCard();
+        }
+
+        function renderCurrentStudyCard() {
+            if (!activeDeckForStudy) return;
+            const card = activeDeckForStudy.cards[studyCardIndex];
+
+            document.getElementById('study-progress-text').textContent = `Card ${studyCardIndex + 1} of ${activeDeckForStudy.cards.length}`;
+            document.getElementById('flashcard-front-text').textContent = card.front;
+            document.getElementById('flashcard-back-text').textContent = card.back;
+
+            document.getElementById('flashcard-inner').classList.remove('rotate-y-180');
+        }
+
+        function flipCard() {
+            document.getElementById('flashcard-inner').classList.toggle('rotate-y-180');
+        }
+
+        function markCardScore(gotIt) {
+            studyCardIndex++;
+            if (studyCardIndex >= activeDeckForStudy.cards.length) {
+                showToast('Deck review finished! Great job!', 'success');
+                closeFlashcardStudy();
+            } else {
+                renderCurrentStudyCard();
+            }
+        }
+
+        function closeFlashcardStudy() {
+            document.getElementById('flashcard-study-container').classList.add('hidden');
+            document.getElementById('flashcard-decks-grid').classList.remove('hidden');
+            activeDeckForStudy = null;
+        }
+
+        function renderNotes() {
+            const query = (document.getElementById('notes-search-input').value || '').toLowerCase();
+            const grid = document.getElementById('notes-grid');
+            grid.innerHTML = '';
+
+            const filtered = state.notes.filter(n => n.title.toLowerCase().includes(query) || n.content.toLowerCase().includes(query));
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<p class="text-xs text-gray-400 italic col-span-full">No notes found.</p>';
+                return;
+            }
+
+            filtered.forEach(note => {
+                const course = state.courses.find(c => c.id === note.courseId) || { code: 'General' };
+                grid.innerHTML += `
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-200 dark:border-gray-700 space-y-3 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">${escapeHtml(course.code)}</span>
+                                <div class="flex items-center space-x-1">
+                                    <button onclick="editNote('${note.id}')" class="text-gray-400 hover:text-blue-500 p-1"><i class="fa-solid fa-pen text-xs"></i></button>
+                                    <button onclick="deleteNote('${note.id}')" class="text-gray-400 hover:text-red-500 p-1"><i class="fa-solid fa-trash text-xs"></i></button>
+                                </div>
+                            </div>
+                            <h4 class="font-bold text-sm text-gray-800 dark:text-white">${escapeHtml(note.title)}</h4>
+                            <p class="text-xs text-gray-600 dark:text-gray-300 mt-2 line-clamp-3">${escapeHtml(note.content)}</p>
+                        </div>
+                        <p class="text-[10px] text-gray-400 border-t border-gray-100 dark:border-gray-700/60 pt-2 mt-2">Updated ${note.updatedAt}</p>
+                    </div>
+                `;
+            });
+        }
+
+        function saveScratchpad() {
+            state.scratchpad = document.getElementById('scratchpad-textarea').value;
+            localStorage.setItem('shixy_data', JSON.stringify(state));
+        }
+
+        function initCharts() {
+            const ctxGrades = document.getElementById('chart-grades').getContext('2d');
+            chartGradesObj = new Chart(ctxGrades, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Current Grade (%)',
+                        data: [],
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { min: 0, max: 100 } }
+                }
+            });
+
+            const ctxTasks = document.getElementById('chart-tasks').getContext('2d');
+            chartTasksObj = new Chart(ctxTasks, {
+                type: 'doughnut',
+                data: {
+                    labels: ['To-Do', 'In Progress', 'Submitted', 'Completed'],
+                    datasets: [{
+                        data: [0, 0, 0, 0],
+                        backgroundColor: ['#f59e0b', '#3b82f6', '#a855f7', '#10b981']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            updateCharts();
+        }
+
+        function updateCharts() {
+            if (!chartGradesObj || !chartTasksObj) return;
+
+            chartGradesObj.data.labels = state.courses.map(c => c.code);
+            chartGradesObj.data.datasets[0].data = state.courses.map(c => c.currentGrade);
+            chartGradesObj.update();
+
+            const todo = state.assignments.filter(a => a.status === 'todo').length;
+            const inprog = state.assignments.filter(a => a.status === 'inprogress').length;
+            const sub = state.assignments.filter(a => a.status === 'submitted').length;
+            const comp = state.assignments.filter(a => a.status === 'completed').length;
+
+            chartTasksObj.data.datasets[0].data = [todo, inprog, sub, comp];
+            chartTasksObj.update();
+        }
+
+        let gcToken = null;
+        const GC_SCOPES = 'https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me.readonly';
+
+        function getClientId() { return state.settings.googleClientId || ''; }
+
+        function syncUI(emoji, title, msg, pct, actions) {
+            openModal('modal-sync');
+            document.getElementById('sync-icon').innerHTML = `<i class="${emoji}"></i>`;
+            document.getElementById('sync-title').textContent = title;
+            document.getElementById('sync-msg').textContent = msg || '';
+            document.getElementById('sync-bar').style.width = pct + '%';
+            const box = document.getElementById('sync-actions');
+            box.innerHTML = '';
+            box.classList.toggle('hidden', !actions);
+            (actions || []).forEach(a => {
+                const b = document.createElement('button');
+                b.textContent = a.label;
+                b.className = 'px-5 py-3 rounded-2xl font-bold text-lg ' + (a.primary ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-gray-200 dark:bg-gray-700');
+                b.onclick = a.fn;
+                box.appendChild(b);
+            });
+        }
+
+        function syncDone(courses, tasks, practice) {
+            state.settings.lastSync = new Date().toLocaleString();
+            saveState();
+            const t = document.getElementById('hub-last-sync');
+            if (t) t.textContent = 'Last synced: ' + state.settings.lastSync;
+            const sub = document.getElementById('google-sub-text');
+            if (sub) sub.textContent = 'Synced ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            syncUI('fa-solid fa-circle-check', 'All done!', `We found ${courses} class${courses === 1 ? '' : 'es'} and ${tasks} homework thing${tasks === 1 ? '' : 's'}.` + (practice ? ' (These are practice classes. Ask a grown-up to finish setup for your real ones!)' : ''), 100,
+                [{ label: 'See my homework', primary: true, fn: () => { closeModal('modal-sync'); switchTab('assignments'); } },
+                 { label: 'Close', fn: () => closeModal('modal-sync') }]);
+        }
+
+        function syncError(why) {
+            syncUI('fa-solid fa-triangle-exclamation text-amber-500', 'Oops, that didn\'t work', why + ' It\'s not your fault!', 100,
+                [{ label: 'Try again', primary: true, fn: startKidSync },
+                 { label: 'Ask a grown-up for help', fn: () => { closeModal('modal-sync'); openGoogleSyncModal(); } },
+                 { label: 'Close', fn: () => closeModal('modal-sync') }]);
+        }
+
+        function startKidSync() {
+            if (!getClientId()) { openGoogleSyncModal(); return; }
+            if (typeof google === 'undefined' || !google.accounts) {
+                syncError('Google isn\'t loading. Check the internet and try again.');
+                return;
+            }
+            syncUI('fa-brands fa-google', 'Say hi to Google!', 'Pick your school account, then tap "Allow".', 15);
+            const client = google.accounts.oauth2.initTokenClient({
+                client_id: getClientId(),
+                scope: GC_SCOPES,
+                prompt: state.settings.gcConnected ? '' : undefined,
+                callback: async (response) => {
+                    if (response.error || !response.access_token) {
+                        syncError('Google said no this time. Make sure you tap "Allow".');
+                        return;
+                    }
+                    gcToken = response.access_token;
+                    state.settings.gcConnected = true;
+                    await fetchGoogleClassroomData(response.access_token);
+                },
+                error_callback: () => syncError('The Google window got closed.')
+            });
+            client.requestAccessToken();
+        }
+
+        function handleRealGoogleLogin() { startKidSync(); }
+
+        function syncOut() {
+            const gcCourseIds = new Set(state.courses.filter(c => String(c.id).startsWith('gc-')).map(c => c.id));
+            const tasks = state.assignments.filter(a => a.isGoogleClassroom || String(a.id).startsWith('gcw-') || gcCourseIds.has(a.courseId));
+            const slots = state.timetable.filter(t => gcCourseIds.has(t.courseId));
+
+            if (!gcCourseIds.size && !tasks.length && !slots.length && !state.settings.gcConnected) {
+                showToast('Nothing from Google Classroom to remove.', 'info');
+                return;
+            }
+
+            const msg = `Sync out will delete ${gcCourseIds.size} class${gcCourseIds.size === 1 ? '' : 'es'}, ${tasks.length} homework item${tasks.length === 1 ? '' : 's'} and ${slots.length} timetable slot${slots.length === 1 ? '' : 's'} that came from Google Classroom, and disconnect it.\n\nClasses, tasks, decks and notes you made yourself stay. Continue?`;
+            if (!confirm(msg)) return;
+
+            const taskIds = new Set(tasks.map(t => t.id));
+            const slotIds = new Set(slots.map(t => t.id));
+            state.courses = state.courses.filter(c => !gcCourseIds.has(c.id));
+            state.assignments = state.assignments.filter(a => !taskIds.has(a.id));
+            state.timetable = state.timetable.filter(t => !slotIds.has(t.id));
+
+            if (gcToken && window.google && google.accounts && google.accounts.oauth2 && google.accounts.oauth2.revoke) {
+                try { google.accounts.oauth2.revoke(gcToken, () => {}); } catch (e) {}
+            }
+            gcToken = null;
+            state.settings.gcConnected = false;
+            delete state.settings.lastSync;
+            saveState();
+
+            const sub = document.getElementById('google-sub-text');
+            if (sub) sub.textContent = 'Tap Sync in to get homework';
+            showToast('Synced out. Google Classroom data removed.', 'success');
+        }
+
+        async function fetchGoogleClassroomData(accessToken) {
+            const api = async (path) => {
+                const r = await fetch('https://classroom.googleapis.com/v1/' + path, { headers: { Authorization: `Bearer ${accessToken}` } });
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            };
+            try {
+                syncUI('fa-solid fa-magnifying-glass', 'Finding your classes…', 'This only takes a few seconds.', 35);
+                const data = await api('courses?courseStates=ACTIVE&studentId=me');
+                const courses = data.courses || [];
+                if (!courses.length) { syncUI('fa-solid fa-circle-question', 'No classes found', 'Google didn\'t show any classes for this account. Try a different account!', 100, [{ label: 'Try another account', primary: true, fn: startKidSync }, { label: 'Close', fn: () => closeModal('modal-sync') }]); return; }
+                courses.forEach(gc => {
+                    const id = 'gc-' + gc.id;
+                    if (!state.courses.some(c => c.id === id)) {
+                        state.courses.push({ id, code: gc.section || (gc.name || '').slice(0, 8).toUpperCase(), name: gc.name, instructor: '',
+                            room: '', credits: state.settings.defaultCredits, currentGrade: '', targetGrade: '',
+                            classroomLink: gc.alternateLink || 'https://classroom.google.com' });
+                    }
+                });
+                syncUI('fa-solid fa-book-open', 'Grabbing your homework…', '', 65);
+                let taskCount = 0;
+                for (const gc of courses) {
+                    try {
+                        const [cw, subs] = await Promise.all([
+                            api(`courses/${gc.id}/courseWork`),
+                            api(`courses/${gc.id}/courseWork/-/studentSubmissions?userId=me`).catch(() => ({}))
+                        ]);
+                        const stateById = {};
+                        (subs.studentSubmissions || []).forEach(x => stateById[x.courseWorkId] = x.state);
+                        const crs = state.courses.find(c => c.id === 'gc-' + gc.id);
+                        const maxById = {};
+                        (cw.courseWork || []).forEach(w => maxById[w.id] = w.maxPoints);
+                        const pcts = (subs.studentSubmissions || []).filter(x => x.assignedGrade != null && maxById[x.courseWorkId] > 0).map(x => x.assignedGrade / maxById[x.courseWorkId] * 100);
+                        if (crs && !crs.gradeManual && pcts.length) crs.currentGrade = Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length);
+                        (cw.courseWork || []).forEach(w => {
+                            const id = 'gcw-' + w.id;
+                            const done = ['TURNED_IN', 'RETURNED'].includes(stateById[w.id]);
+                            const d = w.dueDate;
+                            const due = d ? `${d.year}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`
+                                          : new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+                            const existing = state.assignments.find(a => a.id === id);
+                            if (existing) { if (done && existing.status === 'todo') existing.status = 'submitted'; }
+                            else state.assignments.push({ id, title: w.title, courseId: 'gc-' + gc.id, dueDate: due,
+                                status: done ? 'submitted' : 'todo', priority: 'Medium', isGoogleClassroom: true,
+                                classroomLink: w.alternateLink || gc.alternateLink || 'https://classroom.google.com' });
+                            taskCount++;
+                        });
+                    } catch (e) { console.warn('Skipped course', gc.id, e); }
+                }
+                syncDone(courses.length, taskCount, false);
+            } catch (err) {
+                console.error(err);
+                syncError('We couldn\'t reach Google Classroom.');
+            }
+        }
+
+        function openGoogleSyncModal() {
+            document.getElementById('google-client-id-input').value = state.settings.googleClientId || '';
+            const note = document.getElementById('google-origin-note');
+            note.innerHTML = location.protocol === 'file:'
+                ? '<strong>This page is opened as a local file.</strong> Google sign-in does not work from file:// addresses. Host the page (for example <code>python3 -m http.server 8000</code> then open <code>http://localhost:8000/WEB.HTML</code>, or upload it to a website) and add that address as an Authorized JavaScript origin.'
+                : 'Paste this address into "Authorized JavaScript origins": <code class="font-mono font-bold select-all">' + location.origin + '</code> <button type="button" onclick="copyOrigin()" class="ml-1 px-2 py-0.5 rounded bg-amber-200 dark:bg-amber-800 font-semibold">Copy</button>';
+            openModal('modal-google-config');
+        }
+
+        function copyOrigin() {
+            try {
+                navigator.clipboard.writeText(location.origin).then(() => showToast('Address copied.', 'success'));
+            } catch (e) { showToast('Select the address and copy it.', 'info'); }
+        }
+
+        function saveGoogleClientId() {
+            const val = document.getElementById('google-client-id-input').value.trim();
+            state.settings.googleClientId = val;
+            saveState();
+            closeModal('modal-google-config');
+            if (val) startKidSync();
+        }
+
+        function openCourseModal() {
+            document.getElementById('form-course').reset();
+            document.getElementById('course-id').value = '';
+            document.getElementById('modal-course-title').textContent = 'Add New Course';
+            document.getElementById('course-credits').value = state.settings.defaultCredits;
+            openModal('modal-course');
+        }
+
+        function editCourse(id) {
+            const c = state.courses.find(item => item.id === id);
+            if (!c) return;
+            document.getElementById('course-id').value = c.id;
+            document.getElementById('course-code').value = c.code;
+            document.getElementById('course-name').value = c.name;
+            document.getElementById('course-instructor').value = c.instructor || '';
+            document.getElementById('course-room').value = c.room || '';
+            document.getElementById('course-credits').value = c.credits ?? state.settings.defaultCredits;
+            document.getElementById('course-grade').value = c.currentGrade ?? '';
+            document.getElementById('course-target').value = c.targetGrade ?? '';
+            document.getElementById('course-link').value = c.classroomLink || '';
+
+            document.getElementById('modal-course-title').textContent = 'Edit Course';
+            openModal('modal-course');
+        }
+
+        function handleCourseSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('course-id').value;
+            const data = {
+                id: id || 'course-' + Date.now(),
+                code: document.getElementById('course-code').value,
+                name: document.getElementById('course-name').value,
+                instructor: document.getElementById('course-instructor').value,
+                room: document.getElementById('course-room').value,
+                credits: isNaN(parseFloat(document.getElementById('course-credits').value)) ? state.settings.defaultCredits : parseFloat(document.getElementById('course-credits').value),
+                currentGrade: document.getElementById('course-grade').value === '' ? '' : parseFloat(document.getElementById('course-grade').value),
+                targetGrade: document.getElementById('course-target').value === '' ? '' : parseFloat(document.getElementById('course-target').value),
+                classroomLink: document.getElementById('course-link').value
+            };
+
+            if (id) {
+                const idx = state.courses.findIndex(c => c.id === id);
+                if (idx !== -1) state.courses[idx] = Object.assign({}, state.courses[idx], data, { gradeManual: state.courses[idx].gradeManual || document.getElementById('course-grade').value !== '' });
+            } else {
+                state.courses.push(data);
+            }
+
+            saveState();
+            closeModal('modal-course');
+            showToast('Course saved successfully!', 'success');
+        }
+
+        function deleteCourse(id) {
+            state.courses = state.courses.filter(c => c.id !== id);
+            saveState();
+            showToast('Course deleted.', 'info');
+        }
+
+        function openAssignmentModal() {
+            document.getElementById('form-assignment').reset();
+            document.getElementById('assignment-id').value = '';
+            document.getElementById('modal-assignment-title').textContent = 'Add New Task';
+            populateCourseDropdowns();
+            openModal('modal-assignment');
+        }
+
+        function editAssignment(id) {
+            const t = state.assignments.find(a => a.id === id);
+            if (!t) return;
+            populateCourseDropdowns();
+            document.getElementById('assignment-id').value = t.id;
+            document.getElementById('assignment-title').value = t.title;
+            document.getElementById('assignment-course').value = t.courseId;
+            document.getElementById('assignment-duedate').value = t.dueDate;
+            document.getElementById('assignment-priority').value = t.priority;
+            document.getElementById('assignment-status').value = t.status;
+
+            document.getElementById('modal-assignment-title').textContent = 'Edit Task';
+            openModal('modal-assignment');
+        }
+
+        function handleAssignmentSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('assignment-id').value;
+            const data = {
+                id: id || 'task-' + Date.now(),
+                title: document.getElementById('assignment-title').value,
+                courseId: document.getElementById('assignment-course').value,
+                dueDate: document.getElementById('assignment-duedate').value,
+                priority: document.getElementById('assignment-priority').value,
+                status: document.getElementById('assignment-status').value,
+                isGoogleClassroom: false
+            };
+
+            if (id) {
+                const idx = state.assignments.findIndex(a => a.id === id);
+                if (idx !== -1) state.assignments[idx] = data;
+            } else {
+                state.assignments.push(data);
+            }
+
+            saveState();
+            closeModal('modal-assignment');
+            showToast('Task saved!', 'success');
+        }
+
+        function toggleTaskStatus(id) {
+            const task = state.assignments.find(a => a.id === id);
+            if (task) {
+                task.status = task.status === 'completed' ? 'todo' : 'completed';
+                saveState();
+            }
+        }
+
+        function deleteAssignment(id) {
+            state.assignments = state.assignments.filter(a => a.id !== id);
+            saveState();
+            showToast('Task removed.', 'info');
+        }
+
+        function openTimetableModal() {
+            document.getElementById('form-timetable').reset();
+            populateCourseDropdowns();
+            openModal('modal-timetable');
+        }
+
+        function handleTimetableSubmit(e) {
+            e.preventDefault();
+            const data = {
+                id: 'tt-' + Date.now(),
+                courseId: document.getElementById('timetable-course').value,
+                day: document.getElementById('timetable-day').value,
+                startTime: document.getElementById('timetable-start').value,
+                endTime: document.getElementById('timetable-end').value,
+                room: document.getElementById('timetable-room').value
+            };
+
+            state.timetable.push(data);
+            saveState();
+            closeModal('modal-timetable');
+            showToast('Class slot added to timetable!', 'success');
+        }
+
+        function deleteTimetableSlot(id) {
+            state.timetable = state.timetable.filter(t => t.id !== id);
+            saveState();
+            showToast('Class slot removed.', 'info');
+        }
+
+        function openDeckModal() {
+            document.getElementById('form-deck').reset();
+            populateCourseDropdowns();
+            openModal('modal-deck');
+        }
+
+        function handleDeckSubmit(e) {
+            e.preventDefault();
+            const deck = {
+                id: 'deck-' + Date.now(),
+                title: document.getElementById('deck-title').value,
+                courseId: document.getElementById('deck-course').value,
+                cards: []
+            };
+
+            state.flashcards.push(deck);
+            saveState();
+            closeModal('modal-deck');
+            showToast('Flashcard deck created!', 'success');
+        }
+
+        function openCardModal(deckId) {
+            document.getElementById('form-card').reset();
+            document.getElementById('card-deck-id').value = deckId;
+            openModal('modal-card');
+        }
+
+        function handleCardSubmit(e) {
+            e.preventDefault();
+            const deckId = document.getElementById('card-deck-id').value;
+            const deck = state.flashcards.find(d => d.id === deckId);
+            if (deck) {
+                deck.cards.push({
+                    id: 'card-' + Date.now(),
+                    front: document.getElementById('card-front').value,
+                    back: document.getElementById('card-back').value,
+                    reviewed: false
+                });
+                saveState();
+                closeModal('modal-card');
+                showToast('Card added to deck!', 'success');
+            }
+        }
+
+        function deleteDeck(id) {
+            state.flashcards = state.flashcards.filter(d => d.id !== id);
+            saveState();
+            showToast('Flashcard deck deleted.', 'info');
+        }
+
+        function openNoteModal() {
+            document.getElementById('form-note').reset();
+            document.getElementById('note-id').value = '';
+            populateCourseDropdowns();
+            openModal('modal-note');
+        }
+
+        function editNote(id) {
+            const note = state.notes.find(n => n.id === id);
+            if (!note) return;
+            populateCourseDropdowns();
+            document.getElementById('note-id').value = note.id;
+            document.getElementById('note-title').value = note.title;
+            document.getElementById('note-course').value = note.courseId;
+            document.getElementById('note-content').value = note.content;
+            openModal('modal-note');
+        }
+
+        function handleNoteSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('note-id').value;
+            const data = {
+                id: id || 'note-' + Date.now(),
+                title: document.getElementById('note-title').value,
+                courseId: document.getElementById('note-course').value,
+                content: document.getElementById('note-content').value,
+                updatedAt: new Date().toISOString().split('T')[0]
+            };
+
+            if (id) {
+                const idx = state.notes.findIndex(n => n.id === id);
+                if (idx !== -1) state.notes[idx] = data;
+            } else {
+                state.notes.push(data);
+            }
+
+            saveState();
+            closeModal('modal-note');
+            showToast('Note saved!', 'success');
+        }
+
+        function deleteNote(id) {
+            state.notes = state.notes.filter(n => n.id !== id);
+            saveState();
+            showToast('Note deleted.', 'info');
+        }
+
+        function populateCourseDropdowns() {
+            const selects = [
+                document.getElementById('assignment-course'),
+                document.getElementById('timetable-course'),
+                document.getElementById('deck-course'),
+                document.getElementById('note-course'),
+                document.getElementById('assignment-filter-course')
+            ];
+
+            selects.forEach(sel => {
+                if (!sel) return;
+                const isFilter = sel.id === 'assignment-filter-course';
+                const currentVal = sel.value;
+
+                sel.innerHTML = isFilter ? '<option value="all">All Courses</option>' : '';
+
+                state.courses.forEach(c => {
+                    sel.innerHTML += `<option value="${c.id}">${escapeHtml(c.code)} - ${escapeHtml(c.name)}</option>`;
+                });
+
+                if (currentVal) sel.value = currentVal;
+            });
+            updateTimetableCourseFull();
+        }
+
+        function updateTimetableCourseFull() {
+            const sel = document.getElementById('timetable-course');
+            const out = document.getElementById('timetable-course-full');
+            if (!sel || !out) return;
+            const c = state.courses.find(x => x.id === sel.value);
+            out.textContent = c ? `${c.code} - ${c.name}` : '';
+        }
+
+        function openModal(id) {
+            const m = document.getElementById(id);
+            if (m) m.classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            const m = document.getElementById(id);
+            if (m) m.classList.add('hidden');
+        }
+
+        function exportJSONData() {
+            const jsonStr = JSON.stringify(state, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Shixy_Backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            showToast('Exported backup file successfully!', 'success');
+        }
+
+        function triggerImportJSON() {
+            openModal('modal-import');
+        }
+
+        function processJSONImport() {
+            try {
+                const raw = document.getElementById('import-json-textarea').value;
+                const parsed = JSON.parse(raw);
+                if (parsed.courses && parsed.assignments) {
+                    state = parsed;
+                    ensureSettings();
+                    applyTheme();
+                    saveState();
+                    closeModal('modal-import');
+                    showToast('Data restored successfully!', 'success');
+                } else {
+                    showToast('Invalid JSON structure.', 'error');
+                }
+            } catch (err) {
+                showToast('Failed to parse JSON text.', 'error');
+            }
+        }
+
+        function resetToDefaultData() {
+            const keep = ['googleClientId', 'theme', 'gcConnected', 'lastSync', 'sampleRemoved'];
+            const old = state.settings;
+            state.settings = clone(DEFAULT_SETTINGS);
+            keep.forEach(k => { if (old[k] !== undefined) state.settings[k] = old[k]; });
+            saveState();
+            setPomoMode(pomoCurrentMode);
+            showToast('Settings reset to default.', 'info');
+        }
+
+        function clearAllData() {
+            if (!confirm('Delete all courses, tasks, decks and notes? Your settings are kept.')) return;
+            const settings = state.settings;
+            state = clone(DEFAULT_STATE);
+            state.settings = settings;
+            saveState();
+            const sp = document.getElementById('scratchpad-textarea');
+            if (sp) sp.value = '';
+            showToast('All data cleared.', 'info');
+        }
+
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+
+            let colors = 'bg-gray-800 text-white';
+            if (type === 'success') colors = 'bg-emerald-600 text-white';
+            if (type === 'error') colors = 'bg-red-600 text-white';
+
+            toast.className = `px-4 py-3 rounded-xl shadow-lg text-xs font-semibold flex items-center space-x-2 transition-all duration-300 transform translate-y-2 ${colors}`;
+            toast.innerHTML = `<i class="fa-solid fa-bell"></i><span>${msg}</span>`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-4');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
 </script>
 </body>
 </html>
