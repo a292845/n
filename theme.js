@@ -1,5 +1,3 @@
-/* Theme Studio for Shixy — replaces the old tailwind.config <script> block.
-   Load it right after the Tailwind CDN script:  <script src="theme-studio.js"></script> */
 (function () {
   const SH = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
   const PAL = { accent: 'blue', accent2: 'indigo', success: 'emerald', highlight: 'teal', warning: 'amber', danger: 'red', purple: 'purple', neutral: 'gray' };
@@ -28,7 +26,7 @@
   };
   const clone = o => JSON.parse(JSON.stringify(o));
 
-  /* ---------- colour maths ---------- */
+
   const h2hsl = h => {
     const r = parseInt(h.slice(1, 3), 16) / 255, g = parseInt(h.slice(3, 5), 16) / 255, b = parseInt(h.slice(5, 7), 16) / 255;
     const M = Math.max(r, g, b), m = Math.min(r, g, b), l = (M + m) / 2, d = M - m;
@@ -58,12 +56,12 @@
     return o;
   }
 
-  /* ---------- Tailwind palettes now read from CSS variables ---------- */
+
   const tc = {};
   Object.values(PAL).forEach(n => { tc[n] = {}; SH.forEach(s => tc[n][s] = `rgb(var(--${n}-${s}) / <alpha-value>)`); });
   tailwind.config = { darkMode: 'class', theme: { extend: { colors: tc } } };
 
-  /* ---------- state ---------- */
+ 
   let T = clone(DEF);
   try {
     const s = JSON.parse(localStorage.getItem('shixy_theme'));
@@ -99,7 +97,7 @@
   }
   apply();
 
-  /* ---------- charts follow the theme ---------- */
+  
   const rgbv = (pal, s, a) => {
     const v = getComputedStyle(document.documentElement).getPropertyValue(`--${pal}-${s}`).trim().split(/\s+/).join(',');
     return a == null ? `rgb(${v})` : `rgba(${v},${a})`;
@@ -111,7 +109,7 @@
     } catch (e) {}
   }
 
-  /* ---------- UI ---------- */
+  
   const $ = id => document.getElementById(id);
   const setv = (id, v) => { const e = $(id); if (e && document.activeElement !== e) e.value = v; };
   const CARD = 'bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 space-y-4';
